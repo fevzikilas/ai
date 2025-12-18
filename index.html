@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Research Taxonomy Map</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:,">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        #tree-container {
+            width: 100%;
+            height: 100vh;
+        }
+
+        svg {
+            display: block;
+        }
+
+        .disk {
+            fill: none;
+            stroke: #21262d;
+            stroke-width: 2px;
+        }
+
+        .node {
+            cursor: pointer;
+        }
+
+        .node rect {
+            fill: #161b22;
+            stroke: #30363d;
+            stroke-width: 1.5px;
+            rx: 10px;
+            ry: 10px;
+        }
+
+        .node.root rect {
+            fill: #0b2a5a;
+            stroke: #58a6ff;
+            stroke-width: 2px;
+        }
+
+        .node:hover rect {
+            stroke: #58a6ff;
+            filter: drop-shadow(0 0 8px rgba(88, 166, 255, 0.35));
+        }
+
+        .node text {
+            fill: #c9d1d9;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+            pointer-events: none;
+        }
+
+        .node.root text {
+            fill: #ffffff;
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .node.selected rect {
+            stroke: #58a6ff;
+            stroke-width: 2.5px;
+            filter: drop-shadow(0 0 10px rgba(88, 166, 255, 0.45));
+        }
+
+        .link {
+            fill: none;
+            stroke: #30363d;
+            stroke-width: 1.25px;
+            opacity: 0.9;
+        }
+
+        .link.highlight {
+            stroke: #58a6ff;
+            stroke-width: 2px;
+        }
+
+        .link.selected {
+            stroke: #58a6ff;
+            stroke-width: 2.25px;
+            opacity: 1;
+        }
+
+        /* Modal */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 18px;
+        }
+
+        .modal-backdrop.open {
+            display: flex;
+        }
+
+        .modal {
+            width: min(900px, 96vw);
+            max-height: min(720px, 92vh);
+            overflow: auto;
+            background: #0f1622;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            border-bottom: 1px solid #21262d;
+            padding-bottom: 12px;
+            margin-bottom: 12px;
+        }
+
+        .modal-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #ffffff;
+            font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+        }
+
+        .modal-close {
+            background: #161b22;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+            border-radius: 10px;
+            padding: 8px 10px;
+            cursor: pointer;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            border-color: #58a6ff;
+        }
+
+        .papers {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .mini-graph {
+            background: #0d1117;
+            border: 1px solid #21262d;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+
+        .mini-path {
+            color: #c9d1d9;
+            font-size: 12px;
+            line-height: 1.6;
+            word-break: break-word;
+            font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+        }
+
+        .mini-path .arrow {
+            color: #58a6ff;
+            font-weight: 800;
+            padding: 0 6px;
+        }
+
+        .paper-item {
+            background: #0d1117;
+            border: 1px solid #21262d;
+            border-radius: 12px;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 118px 1fr;
+            min-height: 64px;
+        }
+
+        .paper-left {
+            border-right: 1px solid #21262d;
+            background: rgba(88, 166, 255, 0.06);
+            padding: 10px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .paper-source {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: fit-content;
+            padding: 3px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(88, 166, 255, 0.35);
+            color: #58a6ff;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.2px;
+            text-transform: uppercase;
+        }
+
+        .paper-host {
+            color: #8b949e;
+            font-size: 11px;
+            word-break: break-word;
+        }
+
+        .paper-year {
+            margin-top: auto;
+            color: #c9d1d9;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .paper-main {
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .paper-title-link,
+        .paper-title-plain {
+            font-weight: 800;
+            font-size: 13px;
+            line-height: 1.35;
+        }
+
+        .paper-title-link {
+            color: #58a6ff;
+            text-decoration: none;
+        }
+
+        .paper-title-link:hover {
+            text-decoration: underline;
+        }
+
+        .paper-title-plain {
+            color: #c9d1d9;
+        }
+
+        .paper-authors {
+            color: #c9d1d9;
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .paper-meta {
+            color: #8b949e;
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
+        .paper-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 2px;
+        }
+
+        .paper-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 10px;
+            border-radius: 10px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .paper-link:hover {
+            border-color: #58a6ff;
+            color: #ffffff;
+        }
+
+        .empty-state {
+            color: #8b949e;
+            font-size: 12px;
+            line-height: 1.6;
+            padding: 6px 2px;
+        }
+    </style>
+</head>
+<body>
+    <div id="tree-container"></div>
+
+    <div id="modal-backdrop" class="modal-backdrop" aria-hidden="true">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+            <div class="modal-header">
+                <div id="modal-title" class="modal-title">Papers</div>
+                <button id="modal-close" class="modal-close" type="button" aria-label="Close">✕</button>
+            </div>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script>
+        // AI Research Taxonomy (all-AI, curated; leaves = research methods)
+        const treeData = {
+            name: "Artificial Intelligence",
+            children: [
+                {
+                    name: "Foundations",
+                    children: [
+                        {
+                            name: "Probabilistic ML",
+                            children: [
+                                { name: "Gaussian Processes" },
+                                { name: "Variational Inference" },
+                                { name: "MCMC" },
+                                { name: "Bayesian Optimization" }
+                            ]
+                        },
+                        {
+                            name: "Optimization & Training",
+                            children: [
+                                { name: "Adam / AdamW" },
+                                { name: "Mixed Precision Training" },
+                                { name: "DP-SGD (Differential Privacy)" }
+                            ]
+                        },
+                        {
+                            name: "Generalization & Robustness",
+                            children: [
+                                { name: "Adversarial Training" },
+                                { name: "Calibration (Temperature Scaling)" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    name: "Learning Paradigms",
+                    children: [
+                        {
+                            name: "Self-Supervised Learning",
+                            children: [
+                                { name: "Contrastive Learning (SimCLR/MoCo)" },
+                                { name: "Masked Autoencoders (MAE)" }
+                            ]
+                        },
+                        {
+                            name: "Meta & Continual",
+                            children: [
+                                { name: "MAML (Meta-Learning)" },
+                                { name: "EWC (Continual Learning)" }
+                            ]
+                        },
+                        {
+                            name: "Federated & Distributed",
+                            children: [
+                                { name: "Federated Learning (FedAvg)" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    name: "Core Architectures",
+                    children: [
+                        {
+                            name: "Transformers & SSMs",
+                            children: [
+                                { name: "Transformer" },
+                                { name: "FlashAttention" },
+                                { name: "Mixture of Experts (MoE)" },
+                                { name: "Mamba / State Space Models" }
+                            ]
+                        },
+                        {
+                            name: "Graphs",
+                            children: [
+                                { name: "GCN (Graph Convolutional Networks)" },
+                                { name: "GAT (Graph Attention Networks)" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    name: "NLP & LLMs",
+                    children: [
+                        {
+                            name: "Pretraining Objectives",
+                            children: [
+                                { name: "Causal Language Modeling" },
+                                { name: "Masked Language Modeling (BERT)" }
+                            ]
+                        },
+                        {
+                            name: "Fine-tuning & Adaptation",
+                            children: [
+                                { name: "LoRA (Low-Rank Adaptation)" },
+                                { name: "QLoRA" }
+                            ]
+                        },
+                        {
+                            name: "Alignment",
+                            children: [
+                                { name: "RLHF (InstructGPT)" },
+                                { name: "DPO (Direct Preference Optimization)" },
+                                { name: "Constitutional AI" }
+                            ]
+                        },
+                        {
+                            name: "Retrieval & Inference",
+                            children: [
+                                { name: "RAG (Retrieval-Augmented Generation)" },
+                                { name: "Speculative Decoding" },
+                                { name: "LLM Quantization" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    name: "Computer Vision",
+                    children: [
+                        {
+                            name: "Recognition",
+                            children: [
+                                { name: "ResNet" },
+                                { name: "Vision Transformer (ViT)" }
+                            ]
+                        },
+                        {
+                            name: "Detection",
+                            children: [
+                                { name: "YOLO" },
+                                { name: "DETR" }
+                            ]
+                        },
+                        {
+                            name: "Segmentation",
+                            children: [
+                                { name: "U-Net" },
+                                { name: "Mask R-CNN" },
+                                { name: "Segment Anything (SAM)" }
+                            ]
+                        },
+                        {
+                            name: "3D Vision",
+                            children: [
+                                { name: "NeRF" },
+                                { name: "3D Gaussian Splatting" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    name: "Generative Modeling",
+                    children: [
+                        {
+                            name: "Diffusion",
+                            children: [
+                                { name: "DDPM / Score-Based Diffusion" },
+                                { name: "DDIM" },
+                                { name: "Latent Diffusion (Stable Diffusion)" }
+                            ]
+                        },
+                        {
+                            name: "GANs",
+                            children: [
+                                { name: "GAN" },
+                                { name: "StyleGAN2" }
+                            ]
+                        },
+                        {
+                            name: "VAEs",
+                            children: [
+                                { name: "VAE" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    name: "Speech & Audio",
+                    children: [
+                        { name: "Whisper (ASR)" },
+                        { name: "Tacotron 2 (TTS)" },
+                        { name: "VALL-E (Neural Codec Language Models)" }
+                    ]
+                },
+                {
+                    name: "Multimodal",
+                    children: [
+                        { name: "CLIP" },
+                        { name: "LLaVA" }
+                    ]
+                },
+                {
+                    name: "RL & Control",
+                    children: [
+                        { name: "DQN" },
+                        { name: "PPO" },
+                        { name: "SAC" },
+                        { name: "AlphaZero / MCTS" },
+                        { name: "Dreamer (Model-Based RL)" }
+                    ]
+                },
+                {
+                    name: "Robotics & Embodied AI",
+                    children: [
+                        { name: "Behavior Cloning" },
+                        { name: "GAIL" },
+                        { name: "RT-1 / RT-2 (Vision-Language-Action)" }
+                    ]
+                },
+                {
+                    name: "Agents",
+                    children: [
+                        { name: "ReAct" },
+                        { name: "Toolformer" }
+                    ]
+                },
+                {
+                    name: "Interpretability",
+                    children: [
+                        { name: "Integrated Gradients" },
+                        { name: "SHAP" }
+                    ]
+                },
+                {
+                    name: "Causality",
+                    children: [
+                        { name: "NOTEARS (Causal Discovery)" }
+                    ]
+                }
+            ]
+        };
+
+        // Hyperbolic browser (Poincaré disk) — no collapse/expand
+        const svg = d3.select("#tree-container").append("svg");
+        const g = svg.append("g");
+
+        const root = d3.hierarchy(treeData);
+
+        let maxDepth = 0;
+        root.each(d => { if (d.depth > maxDepth) maxDepth = d.depth; });
+
+        // Layout: compute angular order with a radial tree, then map depth into Poincaré disk
+        const radial = d3.tree()
+            .size([2 * Math.PI, 1])
+            .separation((a, b) => (a.parent === b.parent ? 1 : 1.35));
+
+        // Hyperbolic mapping controls: larger => deeper nodes closer to boundary
+        const HYP_STEP = 0.55;
+
+        // Focus point inside unit disk (hyperbolic center)
+        let focus = { x: 0, y: 0 };
+        let focusTarget = { x: 0, y: 0 };
+        let selectedNode = null;
+
+        let currentRpx = 1;
+
+        // Modal elements
+        const modalBackdrop = document.getElementById("modal-backdrop");
+        const modalTitle = document.getElementById("modal-title");
+        const modalBody = document.getElementById("modal-body");
+        const modalClose = document.getElementById("modal-close");
+
+        // Fill this with your own paper lists. Structure:
+        // { "Node Name": [ { title: "...", authors: "...", year: "...", url: "..." }, ... ] }
+        const papersByMethod = {
+            "Gaussian Processes": [
+                { title: "Gaussian Processes for Machine Learning", authors: "Rasmussen & Williams", year: "2006", url: "https://scholar.google.com/scholar?q=Gaussian%20Processes%20for%20Machine%20Learning%20Rasmussen%20Williams" },
+                { title: "A Tutorial on Gaussian Processes", authors: "Carl Edward Rasmussen", year: "2004", url: "https://scholar.google.com/scholar?q=A%20Tutorial%20on%20Gaussian%20Processes%20Rasmussen" },
+                { title: "Scalable Gaussian Processes", authors: "Quinonero-Candela & Rasmussen", year: "2005", url: "https://scholar.google.com/scholar?q=Scalable%20Gaussian%20Processes%20Quinonero-Candela%20Rasmussen" },
+                { title: "Sparse Gaussian Processes using Pseudo-inputs", authors: "Snelson & Ghahramani", year: "2006", url: "https://scholar.google.com/scholar?q=Sparse%20Gaussian%20Processes%20using%20Pseudo-inputs%20Snelson%20Ghahramani" },
+                { title: "Deep Gaussian Processes", authors: "Damianou & Lawrence", year: "2013", url: "https://scholar.google.com/scholar?q=Deep%20Gaussian%20Processes%20Damianou%20Lawrence" }
+            ],
+            "Variational Inference": [
+                { title: "Auto-Encoding Variational Bayes", authors: "Kingma & Welling", year: "2013", url: "https://arxiv.org/abs/1312.6114" },
+                { title: "Stochastic Variational Inference", authors: "Hoffman et al.", year: "2013", url: "https://scholar.google.com/scholar?q=Stochastic%20Variational%20Inference%20Hoffman" },
+                { title: "Black Box Variational Inference", authors: "Ranganath et al.", year: "2014", url: "https://scholar.google.com/scholar?q=Black%20Box%20Variational%20Inference%20Ranganath" },
+                { title: "Variational Inference: A Review for Statisticians", authors: "Blei et al.", year: "2017", url: "https://scholar.google.com/scholar?q=Variational%20Inference%20A%20Review%20for%20Statisticians%20Blei" },
+                { title: "Importance Weighted Autoencoders", authors: "Burda et al.", year: "2015", url: "https://arxiv.org/abs/1509.00519" }
+            ],
+            "MCMC": [
+                { title: "A Conceptual Introduction to Hamiltonian Monte Carlo", authors: "Betancourt", year: "2017", url: "https://arxiv.org/abs/1701.02434" },
+                { title: "The No-U-Turn Sampler: Adaptively Setting Path Lengths in HMC", authors: "Hoffman & Gelman", year: "2014", url: "https://arxiv.org/abs/1111.4246" },
+                { title: "MCMC Using Hamiltonian Dynamics", authors: "Neal", year: "2011", url: "https://scholar.google.com/scholar?q=MCMC%20Using%20Hamiltonian%20Dynamics%20Neal" },
+                { title: "Slice Sampling", authors: "Neal", year: "2003", url: "https://scholar.google.com/scholar?q=Slice%20Sampling%20Neal%202003" },
+                { title: "Stochastic Gradient Langevin Dynamics", authors: "Welling & Teh", year: "2011", url: "https://scholar.google.com/scholar?q=Stochastic%20Gradient%20Langevin%20Dynamics%20Welling%20Teh" }
+            ],
+            "Bayesian Optimization": [
+                { title: "Practical Bayesian Optimization of Machine Learning Algorithms", authors: "Snoek, Larochelle & Adams", year: "2012", url: "https://arxiv.org/abs/1206.2944" },
+                { title: "A Tutorial on Bayesian Optimization", authors: "Brochu, Cora & de Freitas", year: "2010", url: "https://scholar.google.com/scholar?q=A%20Tutorial%20on%20Bayesian%20Optimization%20Brochu%20Cora%20de%20Freitas" },
+                { title: "Multi-Task Bayesian Optimization", authors: "Swersky et al.", year: "2013", url: "https://scholar.google.com/scholar?q=Multi-Task%20Bayesian%20Optimization%20Swersky" },
+                { title: "BOHB: Robust and Efficient Hyperparameter Optimization", authors: "Falkner, Klein & Hutter", year: "2018", url: "https://arxiv.org/abs/1807.01774" },
+                { title: "Hyperband: A Novel Bandit-Based Approach to Hyperparameter Optimization", authors: "Li et al.", year: "2016", url: "https://arxiv.org/abs/1603.06560" }
+            ],
+
+            "Adam / AdamW": [
+                { title: "Adam: A Method for Stochastic Optimization", authors: "Kingma & Ba", year: "2014", url: "https://arxiv.org/abs/1412.6980" },
+                { title: "Decoupled Weight Decay Regularization (AdamW)", authors: "Loshchilov & Hutter", year: "2017", url: "https://arxiv.org/abs/1711.05101" },
+                { title: "On the Convergence of Adam and Beyond", authors: "Reddi et al.", year: "2018", url: "https://arxiv.org/abs/1904.09237" },
+                { title: "An Empirical Model of Large-Batch Training", authors: "McCandlish et al.", year: "2018", url: "https://arxiv.org/abs/1812.06162" },
+                { title: "Training Neural Networks with Stochastic Gradient Methods", authors: "Bottou", year: "2010", url: "https://scholar.google.com/scholar?q=Training%20Neural%20Networks%20with%20Stochastic%20Gradient%20Methods%20Bottou" }
+            ],
+            "Mixed Precision Training": [
+                { title: "Mixed Precision Training", authors: "Micikevicius et al.", year: "2017", url: "https://arxiv.org/abs/1710.03740" },
+                { title: "Deep Learning with Dynamic Loss Scaling", authors: "Micikevicius et al.", year: "2017", url: "https://scholar.google.com/scholar?q=dynamic%20loss%20scaling%20mixed%20precision%20training" },
+                { title: "ZeRO: Memory Optimizations Toward Training Trillion Parameter Models", authors: "Rajbhandari et al.", year: "2020", url: "https://arxiv.org/abs/1910.02054" },
+                { title: "Megatron-LM: Training Multi-Billion Parameter Language Models", authors: "Shoeybi et al.", year: "2019", url: "https://arxiv.org/abs/1909.08053" },
+                { title: "GPipe: Efficient Training of Giant Neural Networks", authors: "Huang et al.", year: "2018", url: "https://arxiv.org/abs/1811.06965" }
+            ],
+            "DP-SGD (Differential Privacy)": [
+                { title: "Deep Learning with Differential Privacy", authors: "Abadi et al.", year: "2016", url: "https://arxiv.org/abs/1607.00133" },
+                { title: "The Algorithmic Foundations of Differential Privacy", authors: "Dwork & Roth", year: "2014", url: "https://scholar.google.com/scholar?q=The%20Algorithmic%20Foundations%20of%20Differential%20Privacy%20Dwork%20Roth" },
+                { title: "Rényi Differential Privacy", authors: "Mironov", year: "2017", url: "https://arxiv.org/abs/1702.07476" },
+                { title: "Differentially Private SGD: A Practical Guide", authors: "Various", year: "2020", url: "https://scholar.google.com/scholar?q=Differentially%20Private%20SGD%20practical%20guide" },
+                { title: "Opacus: User-Friendly Differential Privacy Library", authors: "Meta", year: "2021", url: "https://scholar.google.com/scholar?q=Opacus%20differential%20privacy%20library" }
+            ],
+            "Adversarial Training": [
+                { title: "Intriguing properties of neural networks", authors: "Szegedy et al.", year: "2013", url: "https://arxiv.org/abs/1312.6199" },
+                { title: "Explaining and Harnessing Adversarial Examples", authors: "Goodfellow, Shlens & Szegedy", year: "2014", url: "https://arxiv.org/abs/1412.6572" },
+                { title: "Towards Deep Learning Models Resistant to Adversarial Attacks (PGD)", authors: "Madry et al.", year: "2017", url: "https://arxiv.org/abs/1706.06083" },
+                { title: "Adversarial Examples Are Not Bugs, They Are Features", authors: "Ilyas et al.", year: "2019", url: "https://arxiv.org/abs/1905.02175" },
+                { title: "Adversarial Robustness Generalization", authors: "Various", year: "2020", url: "https://scholar.google.com/scholar?q=adversarial%20robustness%20generalization" }
+            ],
+            "Calibration (Temperature Scaling)": [
+                { title: "On Calibration of Modern Neural Networks", authors: "Guo et al.", year: "2017", url: "https://arxiv.org/abs/1706.04599" },
+                { title: "Obtaining Well Calibrated Probabilities Using Bayesian Binning", authors: "Zadrozny & Elkan", year: "2001", url: "https://scholar.google.com/scholar?q=Obtaining%20Well%20Calibrated%20Probabilities%20Using%20Bayesian%20Binning" },
+                { title: "Verified Uncertainty Calibration", authors: "Various", year: "2020", url: "https://scholar.google.com/scholar?q=uncertainty%20calibration%20neural%20networks" },
+                { title: "Measuring Calibration in Deep Learning", authors: "Naeini et al.", year: "2015", url: "https://scholar.google.com/scholar?q=Measuring%20Calibration%20in%20Deep%20Learning" },
+                { title: "Calibration and Bayesian Deep Learning", authors: "Various", year: "2019", url: "https://scholar.google.com/scholar?q=calibration%20bayesian%20deep%20learning" }
+            ],
+
+            "Contrastive Learning (SimCLR/MoCo)": [
+                { title: "A Simple Framework for Contrastive Learning of Visual Representations (SimCLR)", authors: "Chen et al.", year: "2020", url: "https://arxiv.org/abs/2002.05709" },
+                { title: "Momentum Contrast for Unsupervised Visual Representation Learning (MoCo)", authors: "He et al.", year: "2019", url: "https://arxiv.org/abs/1911.05722" },
+                { title: "Bootstrap Your Own Latent (BYOL)", authors: "Grill et al.", year: "2020", url: "https://arxiv.org/abs/2006.07733" },
+                { title: "Contrastive Representation Learning: A Framework and Review", authors: "Jaiswal et al.", year: "2021", url: "https://arxiv.org/abs/2010.05113" },
+                { title: "CLIP: Learning Transferable Visual Models From Natural Language Supervision", authors: "Radford et al.", year: "2021", url: "https://arxiv.org/abs/2103.00020" }
+            ],
+            "Masked Autoencoders (MAE)": [
+                { title: "Masked Autoencoders Are Scalable Vision Learners", authors: "He et al.", year: "2021", url: "https://arxiv.org/abs/2111.06377" },
+                { title: "BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding", authors: "Devlin et al.", year: "2018", url: "https://arxiv.org/abs/1810.04805" },
+                { title: "BEiT: BERT Pre-Training of Image Transformers", authors: "Bao et al.", year: "2021", url: "https://arxiv.org/abs/2106.08254" },
+                { title: "SimMIM: A Simple Framework for Masked Image Modeling", authors: "Xie et al.", year: "2021", url: "https://arxiv.org/abs/2111.09886" },
+                { title: "Masked Modeling: A Review", authors: "Various", year: "2022", url: "https://scholar.google.com/scholar?q=masked%20image%20modeling%20review" }
+            ],
+            "MAML (Meta-Learning)": [
+                { title: "Model-Agnostic Meta-Learning for Fast Adaptation of Deep Networks (MAML)", authors: "Finn, Abbeel & Levine", year: "2017", url: "https://arxiv.org/abs/1703.03400" },
+                { title: "Reptile: A Scalable Metalearning Algorithm", authors: "Nichol, Achiam & Schulman", year: "2018", url: "https://arxiv.org/abs/1803.02999" },
+                { title: "Meta-Learning in Neural Networks: A Survey", authors: "Hospedales et al.", year: "2021", url: "https://arxiv.org/abs/2004.05439" },
+                { title: "Prototypical Networks for Few-shot Learning", authors: "Snell et al.", year: "2017", url: "https://arxiv.org/abs/1703.05175" },
+                { title: "Matching Networks for One Shot Learning", authors: "Vinyals et al.", year: "2016", url: "https://arxiv.org/abs/1606.04080" }
+            ],
+            "EWC (Continual Learning)": [
+                { title: "Overcoming catastrophic forgetting in neural networks (EWC)", authors: "Kirkpatrick et al.", year: "2017", url: "https://arxiv.org/abs/1612.00796" },
+                { title: "Continual Learning: A Comparative Study", authors: "Kemker et al.", year: "2018", url: "https://arxiv.org/abs/1708.02072" },
+                { title: "Experience Replay for Continual Learning", authors: "Rolnick et al.", year: "2019", url: "https://arxiv.org/abs/1811.11682" },
+                { title: "Learning without Forgetting", authors: "Li & Hoiem", year: "2016", url: "https://arxiv.org/abs/1606.09282" },
+                { title: "A Survey on Continual Learning", authors: "De Lange et al.", year: "2021", url: "https://arxiv.org/abs/1909.08383" }
+            ],
+            "Federated Learning (FedAvg)": [
+                { title: "Communication-Efficient Learning of Deep Networks from Decentralized Data (FedAvg)", authors: "McMahan et al.", year: "2016", url: "https://arxiv.org/abs/1602.05629" },
+                { title: "Federated Learning: Challenges, Methods, and Future Directions", authors: "Kairouz et al.", year: "2019", url: "https://arxiv.org/abs/1912.04977" },
+                { title: "FedProx: Federated Optimization in Heterogeneous Networks", authors: "Li et al.", year: "2018", url: "https://arxiv.org/abs/1812.06127" },
+                { title: "Federated Learning with Differential Privacy", authors: "Geyer et al.", year: "2017", url: "https://scholar.google.com/scholar?q=Federated%20Learning%20with%20Differential%20Privacy%20Geyer" },
+                { title: "Secure Aggregation for Federated Learning", authors: "Bonawitz et al.", year: "2017", url: "https://scholar.google.com/scholar?q=Secure%20Aggregation%20for%20Federated%20Learning%20Bonawitz" }
+            ],
+
+            "Transformer": [
+                { title: "Attention Is All You Need", authors: "Vaswani et al.", year: "2017", url: "https://arxiv.org/abs/1706.03762" },
+                { title: "BERT: Pre-training of Deep Bidirectional Transformers", authors: "Devlin et al.", year: "2018", url: "https://arxiv.org/abs/1810.04805" },
+                { title: "Language Models are Few-Shot Learners (GPT-3)", authors: "Brown et al.", year: "2020", url: "https://arxiv.org/abs/2005.14165" },
+                { title: "Transformer-XL: Attentive Language Models Beyond a Fixed-Length Context", authors: "Dai et al.", year: "2019", url: "https://arxiv.org/abs/1901.02860" },
+                { title: "T5: Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer", authors: "Raffel et al.", year: "2019", url: "https://arxiv.org/abs/1910.10683" },
+                { title: "Scaling Laws for Neural Language Models", authors: "Kaplan et al.", year: "2020", url: "https://arxiv.org/abs/2001.08361" }
+            ],
+            "FlashAttention": [
+                { title: "FlashAttention: Fast and Memory-Efficient Exact Attention", authors: "Dao et al.", year: "2022", url: "https://arxiv.org/abs/2205.14135" },
+                { title: "FlashAttention-2: Faster Attention with Better Parallelism", authors: "Dao", year: "2023", url: "https://scholar.google.com/scholar?q=FlashAttention-2%20Faster%20Attention%20with%20Better%20Parallelism" },
+                { title: "Efficient Attention: A Survey", authors: "Tay et al.", year: "2020", url: "https://arxiv.org/abs/2009.06732" },
+                { title: "Memory-Efficient Attention", authors: "Rabe & Staats", year: "2021", url: "https://arxiv.org/abs/2112.05682" },
+                { title: "Long Range Arena: A Benchmark for Efficient Transformers", authors: "Tay et al.", year: "2020", url: "https://arxiv.org/abs/2011.04006" }
+            ],
+            "Mixture of Experts (MoE)": [
+                { title: "Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts Layer", authors: "Shazeer et al.", year: "2017", url: "https://arxiv.org/abs/1701.06538" },
+                { title: "GShard: Scaling Giant Models with Conditional Computation", authors: "Lepikhin et al.", year: "2020", url: "https://arxiv.org/abs/2006.16668" },
+                { title: "Switch Transformers: Scaling to Trillion Parameter Models", authors: "Fedus, Zoph & Shazeer", year: "2021", url: "https://arxiv.org/abs/2101.03961" },
+                { title: "DeepSpeed-MoE", authors: "Rajbhandari et al.", year: "2022", url: "https://arxiv.org/abs/2201.05596" },
+                { title: "Mixture-of-Experts: A Survey", authors: "Various", year: "2022", url: "https://scholar.google.com/scholar?q=mixture%20of%20experts%20survey" }
+            ],
+            "Mamba / State Space Models": [
+                { title: "Mamba: Linear-Time Sequence Modeling with Selective State Spaces", authors: "Gu & Dao", year: "2023", url: "https://arxiv.org/abs/2312.00752" },
+                { title: "Efficiently Modeling Long Sequences with Structured State Spaces (S4)", authors: "Gu et al.", year: "2021", url: "https://arxiv.org/abs/2111.00396" },
+                { title: "HiPPO: Recurrent Memory with Optimal Polynomial Projections", authors: "Gu et al.", year: "2020", url: "https://arxiv.org/abs/2008.07669" },
+                { title: "State Space Models for Sequence Modeling: A Survey", authors: "Various", year: "2024", url: "https://scholar.google.com/scholar?q=state%20space%20models%20sequence%20modeling%20survey" },
+                { title: "RWKV: Reinventing RNNs for the Transformer Era", authors: "Peng et al.", year: "2023", url: "https://arxiv.org/abs/2305.13048" }
+            ],
+            "GCN (Graph Convolutional Networks)": [
+                { title: "Semi-Supervised Classification with Graph Convolutional Networks", authors: "Kipf & Welling", year: "2016", url: "https://arxiv.org/abs/1609.02907" },
+                { title: "GraphSAGE: Inductive Representation Learning on Large Graphs", authors: "Hamilton et al.", year: "2017", url: "https://arxiv.org/abs/1706.02216" },
+                { title: "Relational Graph Convolutional Networks", authors: "Schlichtkrull et al.", year: "2017", url: "https://arxiv.org/abs/1703.06103" },
+                { title: "A Comprehensive Survey on Graph Neural Networks", authors: "Wu et al.", year: "2020", url: "https://arxiv.org/abs/1901.00596" },
+                { title: "Message Passing Neural Networks", authors: "Gilmer et al.", year: "2017", url: "https://arxiv.org/abs/1704.01212" }
+            ],
+            "GAT (Graph Attention Networks)": [
+                { title: "Graph Attention Networks", authors: "Velickovic et al.", year: "2017", url: "https://arxiv.org/abs/1710.10903" },
+                { title: "Graph Transformer Networks", authors: "Yun et al.", year: "2019", url: "https://arxiv.org/abs/1911.06455" },
+                { title: "Heterophily and Oversmoothing in GNNs", authors: "Various", year: "2020", url: "https://scholar.google.com/scholar?q=heterophily%20oversmoothing%20graph%20neural%20networks" },
+                { title: "A Survey on Graph Attention Models", authors: "Various", year: "2021", url: "https://scholar.google.com/scholar?q=survey%20graph%20attention%20networks" },
+                { title: "Graph Neural Networks: Methods and Applications", authors: "Various", year: "2018", url: "https://scholar.google.com/scholar?q=graph%20neural%20networks%20methods%20applications%20survey" }
+            ],
+
+            "Causal Language Modeling": [
+                { title: "Improving Language Understanding by Generative Pre-Training (GPT)", authors: "Radford et al.", year: "2018", url: "https://scholar.google.com/scholar?q=Improving%20Language%20Understanding%20by%20Generative%20Pre-Training" },
+                { title: "Language Models are Unsupervised Multitask Learners (GPT-2)", authors: "Radford et al.", year: "2019", url: "https://scholar.google.com/scholar?q=Language%20Models%20are%20Unsupervised%20Multitask%20Learners%20GPT-2" },
+                { title: "Language Models are Few-Shot Learners (GPT-3)", authors: "Brown et al.", year: "2020", url: "https://arxiv.org/abs/2005.14165" },
+                { title: "Scaling Laws for Neural Language Models", authors: "Kaplan et al.", year: "2020", url: "https://arxiv.org/abs/2001.08361" },
+                { title: "Training Compute-Optimal Large Language Models (Chinchilla)", authors: "Hoffmann et al.", year: "2022", url: "https://arxiv.org/abs/2203.15556" }
+            ],
+            "Masked Language Modeling (BERT)": [
+                { title: "BERT: Pre-training of Deep Bidirectional Transformers", authors: "Devlin et al.", year: "2018", url: "https://arxiv.org/abs/1810.04805" },
+                { title: "RoBERTa: A Robustly Optimized BERT Pretraining Approach", authors: "Liu et al.", year: "2019", url: "https://arxiv.org/abs/1907.11692" },
+                { title: "ALBERT: A Lite BERT for Self-supervised Learning", authors: "Lan et al.", year: "2019", url: "https://arxiv.org/abs/1909.11942" },
+                { title: "ELECTRA: Pre-training Text Encoders as Discriminators", authors: "Clark et al.", year: "2020", url: "https://arxiv.org/abs/2003.10555" },
+                { title: "DeBERTa: Decoding-enhanced BERT with Disentangled Attention", authors: "He et al.", year: "2020", url: "https://arxiv.org/abs/2006.03654" }
+            ],
+            "LoRA (Low-Rank Adaptation)": [
+                { title: "LoRA: Low-Rank Adaptation of Large Language Models", authors: "Hu et al.", year: "2021", url: "https://arxiv.org/abs/2106.09685" },
+                { title: "Prefix-Tuning: Optimizing Continuous Prompts", authors: "Li & Liang", year: "2021", url: "https://arxiv.org/abs/2101.00190" },
+                { title: "Adapters: Parameter-Efficient Transfer Learning", authors: "Houlsby et al.", year: "2019", url: "https://arxiv.org/abs/1902.00751" },
+                { title: "AdaLoRA: Adaptive Budget Allocation for LoRA", authors: "Zhang et al.", year: "2023", url: "https://arxiv.org/abs/2303.10512" },
+                { title: "Scaling Down to Scale Up: PEFT Survey", authors: "Various", year: "2023", url: "https://scholar.google.com/scholar?q=parameter%20efficient%20fine%20tuning%20survey" }
+            ],
+            "QLoRA": [
+                { title: "QLoRA: Efficient Finetuning of Quantized LLMs", authors: "Dettmers et al.", year: "2023", url: "https://arxiv.org/abs/2305.14314" },
+                { title: "bitsandbytes: 8-bit Optimizers and Quantization", authors: "Dettmers et al.", year: "2022", url: "https://scholar.google.com/scholar?q=bitsandbytes%208-bit%20optimizers%20Dettmers" },
+                { title: "LoRA: Low-Rank Adaptation of Large Language Models", authors: "Hu et al.", year: "2021", url: "https://arxiv.org/abs/2106.09685" },
+                { title: "GPTQ: Accurate Post-Training Quantization", authors: "Frantar et al.", year: "2022", url: "https://arxiv.org/abs/2210.17323" },
+                { title: "AWQ: Activation-aware Weight Quantization", authors: "Lin et al.", year: "2023", url: "https://arxiv.org/abs/2306.00978" }
+            ],
+            "RLHF (InstructGPT)": [
+                { title: "Training language models to follow instructions with human feedback (InstructGPT)", authors: "Ouyang et al.", year: "2022", url: "https://arxiv.org/abs/2203.02155" },
+                { title: "Deep Reinforcement Learning from Human Preferences", authors: "Christiano et al.", year: "2017", url: "https://arxiv.org/abs/1706.03741" },
+                { title: "Learning to Summarize from Human Feedback", authors: "Stiennon et al.", year: "2020", url: "https://arxiv.org/abs/2009.01325" },
+                { title: "Constitutional AI: Harmlessness from AI Feedback", authors: "Bai et al.", year: "2022", url: "https://arxiv.org/abs/2212.08073" },
+                { title: "A Survey of RLHF", authors: "Various", year: "2023", url: "https://scholar.google.com/scholar?q=survey%20reinforcement%20learning%20from%20human%20feedback" }
+            ],
+            "DPO (Direct Preference Optimization)": [
+                { title: "Direct Preference Optimization: Your Language Model is Secretly a Reward Model", authors: "Rafailov et al.", year: "2023", url: "https://arxiv.org/abs/2305.18290" },
+                { title: "Training language models to follow instructions with human feedback (InstructGPT)", authors: "Ouyang et al.", year: "2022", url: "https://arxiv.org/abs/2203.02155" },
+                { title: "RRHF: Rank Responses to Align LLMs", authors: "Yuan et al.", year: "2023", url: "https://arxiv.org/abs/2304.05302" },
+                { title: "ORPO / Preference Optimization Variants", authors: "Various", year: "2024", url: "https://scholar.google.com/scholar?q=preference%20optimization%20language%20models%20ORPO" },
+                { title: "KTO / Preference Learning Variants", authors: "Various", year: "2024", url: "https://scholar.google.com/scholar?q=KTO%20kahneman%20tversky%20optimization%20LLM" }
+            ],
+            "Constitutional AI": [
+                { title: "Constitutional AI: Harmlessness from AI Feedback", authors: "Bai et al.", year: "2022", url: "https://arxiv.org/abs/2212.08073" },
+                { title: "Training a Helpful and Harmless Assistant with RLHF", authors: "Bai et al.", year: "2022", url: "https://scholar.google.com/scholar?q=Training%20a%20Helpful%20and%20Harmless%20Assistant%20Bai" },
+                { title: "Red Teaming Language Models", authors: "Various", year: "2023", url: "https://scholar.google.com/scholar?q=red%20teaming%20language%20models" },
+                { title: "Supervision via AI Feedback", authors: "Various", year: "2023", url: "https://scholar.google.com/scholar?q=AI%20feedback%20supervision%20language%20models" },
+                { title: "Alignment: A Survey", authors: "Various", year: "2023", url: "https://scholar.google.com/scholar?q=survey%20AI%20alignment%20large%20language%20models" }
+            ],
+            "RAG (Retrieval-Augmented Generation)": [
+                { title: "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks (RAG)", authors: "Lewis et al.", year: "2020", url: "https://arxiv.org/abs/2005.11401" },
+                { title: "REALM: Retrieval-Augmented Language Model Pre-Training", authors: "Guu et al.", year: "2020", url: "https://arxiv.org/abs/2002.08909" },
+                { title: "Dense Passage Retrieval (DPR)", authors: "Karpukhin et al.", year: "2020", url: "https://arxiv.org/abs/2004.04906" },
+                { title: "ColBERT: Efficient and Effective Passage Search", authors: "Khattab & Zaharia", year: "2020", url: "https://arxiv.org/abs/2004.12832" },
+                { title: "HyDE: Hypothetical Document Embeddings", authors: "Gao et al.", year: "2022", url: "https://arxiv.org/abs/2212.10496" }
+            ],
+            "Speculative Decoding": [
+                { title: "Fast Inference from Transformers via Speculative Decoding", authors: "Leviathan et al.", year: "2022", url: "https://arxiv.org/abs/2211.17192" },
+                { title: "Speculative Decoding for Efficient LLM Serving", authors: "Various", year: "2023", url: "https://scholar.google.com/scholar?q=speculative%20decoding%20efficient%20LLM%20serving" },
+                { title: "Medusa: Simple LLM Accelerations", authors: "Various", year: "2023", url: "https://scholar.google.com/scholar?q=Medusa%20LLM%20decoding" },
+                { title: "Lookahead Decoding", authors: "Various", year: "2023", url: "https://scholar.google.com/scholar?q=lookahead%20decoding%20language%20models" },
+                { title: "Parallel Decoding for Language Models", authors: "Various", year: "2024", url: "https://scholar.google.com/scholar?q=parallel%20decoding%20language%20models" }
+            ],
+            "LLM Quantization": [
+                { title: "GPTQ: Accurate Post-Training Quantization for Generative Pre-trained Transformers", authors: "Frantar et al.", year: "2022", url: "https://arxiv.org/abs/2210.17323" },
+                { title: "AWQ: Activation-aware Weight Quantization", authors: "Lin et al.", year: "2023", url: "https://arxiv.org/abs/2306.00978" },
+                { title: "SmoothQuant: Accurate and Efficient Post-Training Quantization", authors: "Xiao et al.", year: "2022", url: "https://arxiv.org/abs/2211.10438" },
+                { title: "QLoRA: Efficient Finetuning of Quantized LLMs", authors: "Dettmers et al.", year: "2023", url: "https://arxiv.org/abs/2305.14314" },
+                { title: "A Survey of LLM Compression", authors: "Various", year: "2024", url: "https://scholar.google.com/scholar?q=survey%20large%20language%20model%20compression%20quantization" }
+            ],
+
+            "ResNet": [
+                { title: "Deep Residual Learning for Image Recognition (ResNet)", authors: "He et al.", year: "2015", url: "https://arxiv.org/abs/1512.03385" },
+                { title: "Batch Normalization", authors: "Ioffe & Szegedy", year: "2015", url: "https://arxiv.org/abs/1502.03167" },
+                { title: "Identity Mappings in Deep Residual Networks", authors: "He et al.", year: "2016", url: "https://arxiv.org/abs/1603.05027" },
+                { title: "Wide Residual Networks", authors: "Zagoruyko & Komodakis", year: "2016", url: "https://arxiv.org/abs/1605.07146" },
+                { title: "ResNeXt", authors: "Xie et al.", year: "2016", url: "https://arxiv.org/abs/1611.05431" }
+            ],
+            "Vision Transformer (ViT)": [
+                { title: "An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale (ViT)", authors: "Dosovitskiy et al.", year: "2020", url: "https://arxiv.org/abs/2010.11929" },
+                { title: "DeiT: Training Data-Efficient Image Transformers", authors: "Touvron et al.", year: "2020", url: "https://arxiv.org/abs/2012.12877" },
+                { title: "Swin Transformer", authors: "Liu et al.", year: "2021", url: "https://arxiv.org/abs/2103.14030" },
+                { title: "ConvNeXt", authors: "Liu et al.", year: "2022", url: "https://arxiv.org/abs/2201.03545" },
+                { title: "MAE: Masked Autoencoders", authors: "He et al.", year: "2021", url: "https://arxiv.org/abs/2111.06377" }
+            ],
+            "YOLO": [
+                { title: "You Only Look Once: Unified, Real-Time Object Detection", authors: "Redmon et al.", year: "2015", url: "https://arxiv.org/abs/1506.02640" },
+                { title: "YOLO9000: Better, Faster, Stronger", authors: "Redmon & Farhadi", year: "2016", url: "https://arxiv.org/abs/1612.08242" },
+                { title: "YOLOv4: Optimal Speed and Accuracy", authors: "Bochkovskiy et al.", year: "2020", url: "https://arxiv.org/abs/2004.10934" },
+                { title: "YOLOv7", authors: "Wang et al.", year: "2022", url: "https://arxiv.org/abs/2207.02696" },
+                { title: "YOLOv8 and modern detector trends", authors: "Various", year: "2023", url: "https://scholar.google.com/scholar?q=YOLOv8%20paper" }
+            ],
+            "DETR": [
+                { title: "End-to-End Object Detection with Transformers (DETR)", authors: "Carion et al.", year: "2020", url: "https://arxiv.org/abs/2005.12872" },
+                { title: "Deformable DETR", authors: "Zhu et al.", year: "2020", url: "https://arxiv.org/abs/2010.04159" },
+                { title: "DAB-DETR", authors: "Liu et al.", year: "2022", url: "https://arxiv.org/abs/2201.12329" },
+                { title: "Conditional DETR", authors: "Meng et al.", year: "2021", url: "https://arxiv.org/abs/2108.06152" },
+                { title: "A Survey of Transformer Detectors", authors: "Various", year: "2022", url: "https://scholar.google.com/scholar?q=survey%20transformer%20object%20detection%20DETR" }
+            ],
+            "U-Net": [
+                { title: "U-Net: Convolutional Networks for Biomedical Image Segmentation", authors: "Ronneberger et al.", year: "2015", url: "https://arxiv.org/abs/1505.04597" },
+                { title: "Fully Convolutional Networks for Semantic Segmentation", authors: "Long et al.", year: "2015", url: "https://arxiv.org/abs/1411.4038" },
+                { title: "DeepLab", authors: "Chen et al.", year: "2017", url: "https://arxiv.org/abs/1606.00915" },
+                { title: "U-Net++", authors: "Zhou et al.", year: "2018", url: "https://arxiv.org/abs/1807.10165" },
+                { title: "SegFormer", authors: "Xie et al.", year: "2021", url: "https://arxiv.org/abs/2105.15203" }
+            ],
+            "Mask R-CNN": [
+                { title: "Mask R-CNN", authors: "He et al.", year: "2017", url: "https://arxiv.org/abs/1703.06870" },
+                { title: "Faster R-CNN", authors: "Ren et al.", year: "2015", url: "https://arxiv.org/abs/1506.01497" },
+                { title: "Feature Pyramid Networks (FPN)", authors: "Lin et al.", year: "2016", url: "https://arxiv.org/abs/1612.03144" },
+                { title: "Cascade R-CNN", authors: "Cai & Vasconcelos", year: "2017", url: "https://arxiv.org/abs/1712.00726" },
+                { title: "Detectron2 / Practical Instance Segmentation", authors: "Various", year: "2019", url: "https://scholar.google.com/scholar?q=Detectron2%20Mask%20R-CNN" }
+            ],
+            "Segment Anything (SAM)": [
+                { title: "Segment Anything", authors: "Kirillov et al.", year: "2023", url: "https://arxiv.org/abs/2304.02643" },
+                { title: "SAM in the Wild / Finetuning SAM", authors: "Various", year: "2023", url: "https://scholar.google.com/scholar?q=finetuning%20segment%20anything" },
+                { title: "Grounded-SAM", authors: "Various", year: "2023", url: "https://scholar.google.com/scholar?q=Grounded%20SAM" },
+                { title: "HQ-SAM", authors: "Various", year: "2023", url: "https://scholar.google.com/scholar?q=HQ-SAM" },
+                { title: "Promptable Segmentation Models", authors: "Various", year: "2024", url: "https://scholar.google.com/scholar?q=promptable%20segmentation%20model%20survey" }
+            ],
+            "NeRF": [
+                { title: "NeRF: Representing Scenes as Neural Radiance Fields", authors: "Mildenhall et al.", year: "2020", url: "https://arxiv.org/abs/2003.08934" },
+                { title: "Instant Neural Graphics Primitives (Instant-NGP)", authors: "Muller et al.", year: "2022", url: "https://arxiv.org/abs/2201.05989" },
+                { title: "Mip-NeRF", authors: "Barron et al.", year: "2021", url: "https://arxiv.org/abs/2103.13415" },
+                { title: "NeRF in the Wild", authors: "Martin-Brualla et al.", year: "2021", url: "https://arxiv.org/abs/2008.02268" },
+                { title: "A Survey of NeRF", authors: "Various", year: "2022", url: "https://scholar.google.com/scholar?q=NeRF%20survey" }
+            ],
+            "3D Gaussian Splatting": [
+                { title: "3D Gaussian Splatting for Real-Time Radiance Field Rendering", authors: "Kerbl et al.", year: "2023", url: "https://arxiv.org/abs/2308.04079" },
+                { title: "NeRF: Neural Radiance Fields", authors: "Mildenhall et al.", year: "2020", url: "https://arxiv.org/abs/2003.08934" },
+                { title: "Instant-NGP", authors: "Muller et al.", year: "2022", url: "https://arxiv.org/abs/2201.05989" },
+                { title: "Point-Based Neural Rendering", authors: "Various", year: "2019", url: "https://scholar.google.com/scholar?q=point-based%20neural%20rendering" },
+                { title: "Gaussian Splatting Extensions", authors: "Various", year: "2024", url: "https://scholar.google.com/scholar?q=gaussian%20splatting%20extensions" }
+            ],
+
+            "DDPM / Score-Based Diffusion": [
+                { title: "Denoising Diffusion Probabilistic Models (DDPM)", authors: "Ho et al.", year: "2020", url: "https://arxiv.org/abs/2006.11239" },
+                { title: "Score-Based Generative Modeling through SDEs", authors: "Song et al.", year: "2020", url: "https://arxiv.org/abs/2011.13456" },
+                { title: "Improved Denoising Diffusion Probabilistic Models", authors: "Nichol & Dhariwal", year: "2021", url: "https://arxiv.org/abs/2102.09672" },
+                { title: "Classifier-Free Diffusion Guidance", authors: "Ho & Salimans", year: "2022", url: "https://arxiv.org/abs/2207.12598" },
+                { title: "Diffusion Models: A Comprehensive Survey", authors: "Various", year: "2022", url: "https://scholar.google.com/scholar?q=diffusion%20models%20survey" }
+            ],
+            "DDIM": [
+                { title: "Denoising Diffusion Implicit Models (DDIM)", authors: "Song et al.", year: "2020", url: "https://arxiv.org/abs/2010.02502" },
+                { title: "Denoising Diffusion Probabilistic Models (DDPM)", authors: "Ho et al.", year: "2020", url: "https://arxiv.org/abs/2006.11239" },
+                { title: "Diffusion Samplers: A Survey", authors: "Various", year: "2023", url: "https://scholar.google.com/scholar?q=diffusion%20sampler%20survey" },
+                { title: "Consistency Models", authors: "Song et al.", year: "2023", url: "https://arxiv.org/abs/2303.01469" },
+                { title: "Fast Sampling for Diffusion Models", authors: "Various", year: "2022", url: "https://scholar.google.com/scholar?q=fast%20sampling%20diffusion%20models" }
+            ],
+            "Latent Diffusion (Stable Diffusion)": [
+                { title: "High-Resolution Image Synthesis with Latent Diffusion Models", authors: "Rombach et al.", year: "2021", url: "https://arxiv.org/abs/2112.10752" },
+                { title: "Stable Diffusion: latent text-to-image diffusion", authors: "Rombach et al.", year: "2022", url: "https://scholar.google.com/scholar?q=Stable%20Diffusion%20Rombach" },
+                { title: "Imagen", authors: "Saharia et al.", year: "2022", url: "https://arxiv.org/abs/2205.11487" },
+                { title: "DALL·E 2", authors: "Ramesh et al.", year: "2022", url: "https://arxiv.org/abs/2204.06125" },
+                { title: "Diffusion Models for Text-to-Image: A Survey", authors: "Various", year: "2023", url: "https://scholar.google.com/scholar?q=text-to-image%20diffusion%20survey" }
+            ],
+            "GAN": [
+                { title: "Generative Adversarial Nets", authors: "Goodfellow et al.", year: "2014", url: "https://arxiv.org/abs/1406.2661" },
+                { title: "DCGAN", authors: "Radford et al.", year: "2015", url: "https://arxiv.org/abs/1511.06434" },
+                { title: "WGAN", authors: "Arjovsky et al.", year: "2017", url: "https://arxiv.org/abs/1701.07875" },
+                { title: "WGAN-GP", authors: "Gulrajani et al.", year: "2017", url: "https://arxiv.org/abs/1704.00028" },
+                { title: "A Survey on GANs", authors: "Various", year: "2018", url: "https://scholar.google.com/scholar?q=survey%20generative%20adversarial%20networks" }
+            ],
+            "StyleGAN2": [
+                { title: "A Style-Based Generator Architecture for GANs (StyleGAN)", authors: "Karras et al.", year: "2018", url: "https://arxiv.org/abs/1812.04948" },
+                { title: "Analyzing and Improving the Image Quality of StyleGAN (StyleGAN2)", authors: "Karras et al.", year: "2019", url: "https://arxiv.org/abs/1912.04958" },
+                { title: "Training Generative Adversarial Networks with Limited Data (StyleGAN2-ADA)", authors: "Karras et al.", year: "2020", url: "https://arxiv.org/abs/2006.06676" },
+                { title: "Alias-Free GAN (StyleGAN3)", authors: "Karras et al.", year: "2021", url: "https://arxiv.org/abs/2106.12423" },
+                { title: "GAN Inversion and Editing", authors: "Various", year: "2021", url: "https://scholar.google.com/scholar?q=GAN%20inversion%20editing%20StyleGAN" }
+            ],
+            "VAE": [
+                { title: "Auto-Encoding Variational Bayes", authors: "Kingma & Welling", year: "2013", url: "https://arxiv.org/abs/1312.6114" },
+                { title: "Variational Autoencoders", authors: "Doersch", year: "2016", url: "https://arxiv.org/abs/1606.05908" },
+                { title: "β-VAE: Learning Basic Visual Concepts", authors: "Higgins et al.", year: "2016", url: "https://openreview.net/forum?id=Sy2fzU9gl" },
+                { title: "Vector Quantized VAE (VQ-VAE)", authors: "van den Oord et al.", year: "2017", url: "https://arxiv.org/abs/1711.00937" },
+                { title: "NVAE", authors: "Vahdat & Kautz", year: "2020", url: "https://arxiv.org/abs/2007.03898" }
+            ],
+
+            "Whisper (ASR)": [
+                { title: "Robust Speech Recognition via Large-Scale Weak Supervision (Whisper)", authors: "Radford et al.", year: "2022", url: "https://arxiv.org/abs/2212.04356" },
+                { title: "wav2vec 2.0", authors: "Baevski et al.", year: "2020", url: "https://arxiv.org/abs/2006.11477" },
+                { title: "Deep Speech 2", authors: "Amodei et al.", year: "2015", url: "https://arxiv.org/abs/1512.02595" },
+                { title: "RNN-Transducer", authors: "Graves", year: "2012", url: "https://scholar.google.com/scholar?q=Sequence%20Transduction%20with%20Recurrent%20Neural%20Networks%20Graves" },
+                { title: "Conformer", authors: "Gulati et al.", year: "2020", url: "https://arxiv.org/abs/2005.08100" }
+            ],
+            "Tacotron 2 (TTS)": [
+                { title: "Tacotron: Towards End-to-End Speech Synthesis", authors: "Wang et al.", year: "2017", url: "https://arxiv.org/abs/1703.10135" },
+                { title: "Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions (Tacotron 2)", authors: "Shen et al.", year: "2018", url: "https://arxiv.org/abs/1712.05884" },
+                { title: "WaveNet", authors: "van den Oord et al.", year: "2016", url: "https://arxiv.org/abs/1609.03499" },
+                { title: "FastSpeech", authors: "Ren et al.", year: "2019", url: "https://arxiv.org/abs/1905.09263" },
+                { title: "HiFi-GAN", authors: "Kong et al.", year: "2020", url: "https://arxiv.org/abs/2010.05646" }
+            ],
+            "VALL-E (Neural Codec Language Models)": [
+                { title: "Neural Codec Language Models are Zero-Shot Text to Speech Synthesizers (VALL-E)", authors: "Wang et al.", year: "2023", url: "https://arxiv.org/abs/2301.02111" },
+                { title: "AudioLM", authors: "Borsos et al.", year: "2022", url: "https://arxiv.org/abs/2209.03143" },
+                { title: "SoundStream", authors: "Zeghidour et al.", year: "2021", url: "https://arxiv.org/abs/2107.03312" },
+                { title: "EnCodec", authors: "Défossez et al.", year: "2022", url: "https://arxiv.org/abs/2210.13438" },
+                { title: "Neural audio codecs: A survey", authors: "Various", year: "2023", url: "https://scholar.google.com/scholar?q=neural%20audio%20codec%20survey" }
+            ],
+
+            "CLIP": [
+                { title: "Learning Transferable Visual Models From Natural Language Supervision (CLIP)", authors: "Radford et al.", year: "2021", url: "https://arxiv.org/abs/2103.00020" },
+                { title: "ALIGN", authors: "Jia et al.", year: "2021", url: "https://arxiv.org/abs/2102.05918" },
+                { title: "BLIP", authors: "Li et al.", year: "2022", url: "https://arxiv.org/abs/2201.12086" },
+                { title: "BLIP-2", authors: "Li et al.", year: "2023", url: "https://arxiv.org/abs/2301.12597" },
+                { title: "OpenCLIP / Reproducing CLIP", authors: "Various", year: "2022", url: "https://scholar.google.com/scholar?q=OpenCLIP" }
+            ],
+            "LLaVA": [
+                { title: "Visual Instruction Tuning (LLaVA)", authors: "Liu et al.", year: "2023", url: "https://arxiv.org/abs/2304.08485" },
+                { title: "Flamingo: a Visual Language Model for Few-Shot Learning", authors: "Alayrac et al.", year: "2022", url: "https://arxiv.org/abs/2204.14198" },
+                { title: "MiniGPT-4", authors: "Zhu et al.", year: "2023", url: "https://arxiv.org/abs/2304.10592" },
+                { title: "InstructBLIP", authors: "Dai et al.", year: "2023", url: "https://arxiv.org/abs/2305.06500" },
+                { title: "GPT-4V / multimodal instruction tuning", authors: "Various", year: "2023", url: "https://scholar.google.com/scholar?q=multimodal%20instruction%20tuning" }
+            ],
+
+            "DQN": [
+                { title: "Playing Atari with Deep Reinforcement Learning (DQN)", authors: "Mnih et al.", year: "2013", url: "https://arxiv.org/abs/1312.5602" },
+                { title: "Human-level control through deep reinforcement learning", authors: "Mnih et al.", year: "2015", url: "https://www.nature.com/articles/nature14236" },
+                { title: "Double DQN", authors: "Van Hasselt et al.", year: "2015", url: "https://arxiv.org/abs/1509.06461" },
+                { title: "Dueling Network Architectures", authors: "Wang et al.", year: "2015", url: "https://arxiv.org/abs/1511.06581" },
+                { title: "Rainbow: Combining Improvements in Deep RL", authors: "Hessel et al.", year: "2017", url: "https://arxiv.org/abs/1710.02298" }
+            ],
+            "PPO": [
+                { title: "Proximal Policy Optimization Algorithms (PPO)", authors: "Schulman et al.", year: "2017", url: "https://arxiv.org/abs/1707.06347" },
+                { title: "Trust Region Policy Optimization (TRPO)", authors: "Schulman et al.", year: "2015", url: "https://arxiv.org/abs/1502.05477" },
+                { title: "Generalized Advantage Estimation (GAE)", authors: "Schulman et al.", year: "2015", url: "https://arxiv.org/abs/1506.02438" },
+                { title: "OpenAI Baselines / PPO in practice", authors: "Various", year: "2017", url: "https://scholar.google.com/scholar?q=OpenAI%20Baselines%20PPO" },
+                { title: "RLHF uses PPO", authors: "Ouyang et al.", year: "2022", url: "https://arxiv.org/abs/2203.02155" }
+            ],
+            "SAC": [
+                { title: "Soft Actor-Critic: Off-Policy Maximum Entropy Deep RL", authors: "Haarnoja et al.", year: "2018", url: "https://arxiv.org/abs/1801.01290" },
+                { title: "Soft Actor-Critic Algorithms and Applications", authors: "Haarnoja et al.", year: "2019", url: "https://arxiv.org/abs/1812.05905" },
+                { title: "TD3", authors: "Fujimoto et al.", year: "2018", url: "https://arxiv.org/abs/1802.09477" },
+                { title: "DDPG", authors: "Lillicrap et al.", year: "2015", url: "https://arxiv.org/abs/1509.02971" },
+                { title: "Entropy-Regularized RL", authors: "Various", year: "2017", url: "https://scholar.google.com/scholar?q=entropy%20regularized%20reinforcement%20learning" }
+            ],
+            "AlphaZero / MCTS": [
+                { title: "Mastering the game of Go with deep neural networks and tree search (AlphaGo)", authors: "Silver et al.", year: "2016", url: "https://www.nature.com/articles/nature16961" },
+                { title: "Mastering the game of Go without human knowledge (AlphaGo Zero)", authors: "Silver et al.", year: "2017", url: "https://www.nature.com/articles/nature24270" },
+                { title: "Mastering Chess and Shogi by Self-Play with a General RL Algorithm (AlphaZero)", authors: "Silver et al.", year: "2017", url: "https://arxiv.org/abs/1712.01815" },
+                { title: "A Survey of Monte Carlo Tree Search Methods", authors: "Browne et al.", year: "2012", url: "https://scholar.google.com/scholar?q=A%20Survey%20of%20Monte%20Carlo%20Tree%20Search%20Methods%20Browne" },
+                { title: "MuZero", authors: "Schrittwieser et al.", year: "2019", url: "https://arxiv.org/abs/1911.08265" }
+            ],
+            "Dreamer (Model-Based RL)": [
+                { title: "Dream to Control: Learning Behaviors by Latent Imagination (Dreamer)", authors: "Hafner et al.", year: "2019", url: "https://arxiv.org/abs/1912.01603" },
+                { title: "Mastering Atari with Discrete World Models (DreamerV2)", authors: "Hafner et al.", year: "2020", url: "https://arxiv.org/abs/2010.02193" },
+                { title: "DreamerV3", authors: "Hafner et al.", year: "2023", url: "https://arxiv.org/abs/2301.04104" },
+                { title: "World Models", authors: "Ha & Schmidhuber", year: "2018", url: "https://arxiv.org/abs/1803.10122" },
+                { title: "PlaNet", authors: "Hafner et al.", year: "2018", url: "https://arxiv.org/abs/1811.04551" }
+            ],
+
+            "Behavior Cloning": [
+                { title: "A Reduction of Imitation Learning and Structured Prediction", authors: "Ross, Gordon & Bagnell", year: "2011", url: "https://scholar.google.com/scholar?q=A%20Reduction%20of%20Imitation%20Learning%20and%20Structured%20Prediction%20DAgger" },
+                { title: "Behavioral Cloning", authors: "Pomerleau", year: "1989", url: "https://scholar.google.com/scholar?q=ALVINN%20Pomerleau%201989" },
+                { title: "BC-Z: Zero-shot Task Generalization with Behavior Cloning", authors: "Jang et al.", year: "2021", url: "https://scholar.google.com/scholar?q=BC-Z%20zero-shot%20task%20generalization" },
+                { title: "Diffusion Policy", authors: "Chi et al.", year: "2023", url: "https://arxiv.org/abs/2303.04137" },
+                { title: "A Survey of Imitation Learning", authors: "Osa et al.", year: "2018", url: "https://arxiv.org/abs/1811.03137" }
+            ],
+            "GAIL": [
+                { title: "Generative Adversarial Imitation Learning (GAIL)", authors: "Ho & Ermon", year: "2016", url: "https://arxiv.org/abs/1606.03476" },
+                { title: "Adversarial Inverse Reinforcement Learning", authors: "Fu et al.", year: "2017", url: "https://arxiv.org/abs/1710.11248" },
+                { title: "Guided Cost Learning", authors: "Finn et al.", year: "2016", url: "https://arxiv.org/abs/1603.00448" },
+                { title: "InfoGAIL", authors: "Li et al.", year: "2017", url: "https://arxiv.org/abs/1703.08840" },
+                { title: "A Survey of Imitation Learning", authors: "Osa et al.", year: "2018", url: "https://arxiv.org/abs/1811.03137" }
+            ],
+            "RT-1 / RT-2 (Vision-Language-Action)": [
+                { title: "RT-1: Robotics Transformer for Real-World Control", authors: "Brohan et al.", year: "2022", url: "https://arxiv.org/abs/2212.06817" },
+                { title: "RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotics", authors: "Brohan et al.", year: "2023", url: "https://arxiv.org/abs/2307.15818" },
+                { title: "SayCan: Do As I Can, Not As I Say", authors: "Ahn et al.", year: "2022", url: "https://arxiv.org/abs/2204.01691" },
+                { title: "PaLM-E: An Embodied Multimodal Language Model", authors: "Driess et al.", year: "2023", url: "https://arxiv.org/abs/2303.03378" },
+                { title: "VIMA: General Robot Manipulation with Multimodal Prompts", authors: "Jiang et al.", year: "2022", url: "https://arxiv.org/abs/2210.03094" }
+            ],
+
+            "ReAct": [
+                { title: "ReAct: Synergizing Reasoning and Acting in Language Models", authors: "Yao et al.", year: "2022", url: "https://arxiv.org/abs/2210.03629" },
+                { title: "Toolformer", authors: "Schick et al.", year: "2023", url: "https://arxiv.org/abs/2302.04761" },
+                { title: "MRKL Systems", authors: "Various", year: "2022", url: "https://scholar.google.com/scholar?q=MRKL%20systems" },
+                { title: "Reflexion", authors: "Shinn et al.", year: "2023", url: "https://arxiv.org/abs/2303.11366" },
+                { title: "Tree of Thoughts", authors: "Yao et al.", year: "2023", url: "https://arxiv.org/abs/2305.10601" }
+            ],
+            "Toolformer": [
+                { title: "Toolformer: Language Models Can Teach Themselves to Use Tools", authors: "Schick et al.", year: "2023", url: "https://arxiv.org/abs/2302.04761" },
+                { title: "ReAct", authors: "Yao et al.", year: "2022", url: "https://arxiv.org/abs/2210.03629" },
+                { title: "Gorilla: Large Language Model Connected with Tools", authors: "Patil et al.", year: "2023", url: "https://arxiv.org/abs/2305.15334" },
+                { title: "Function Calling / Tool Use Survey", authors: "Various", year: "2024", url: "https://scholar.google.com/scholar?q=LLM%20tool%20use%20survey" },
+                { title: "Agents with Tool Use", authors: "Various", year: "2023", url: "https://scholar.google.com/scholar?q=language%20model%20agents%20tool%20use" }
+            ],
+
+            "Integrated Gradients": [
+                { title: "Axiomatic Attribution for Deep Networks (Integrated Gradients)", authors: "Sundararajan et al.", year: "2017", url: "https://arxiv.org/abs/1703.01365" },
+                { title: "DeepLIFT", authors: "Shrikumar et al.", year: "2017", url: "https://arxiv.org/abs/1704.02685" },
+                { title: "Grad-CAM", authors: "Selvaraju et al.", year: "2016", url: "https://arxiv.org/abs/1610.02391" },
+                { title: "Captum: Model Interpretability for PyTorch", authors: "Meta", year: "2019", url: "https://scholar.google.com/scholar?q=Captum%20PyTorch%20interpretability" },
+                { title: "A Survey of Explainable AI", authors: "Various", year: "2020", url: "https://scholar.google.com/scholar?q=survey%20explainable%20AI" }
+            ],
+            "SHAP": [
+                { title: "A Unified Approach to Interpreting Model Predictions (SHAP)", authors: "Lundberg & Lee", year: "2017", url: "https://arxiv.org/abs/1705.07874" },
+                { title: "Interpretable Machine Learning", authors: "Molnar", year: "2019", url: "https://scholar.google.com/scholar?q=Interpretable%20Machine%20Learning%20Molnar" },
+                { title: "LIME", authors: "Ribeiro et al.", year: "2016", url: "https://arxiv.org/abs/1602.04938" },
+                { title: "TreeSHAP", authors: "Lundberg et al.", year: "2018", url: "https://scholar.google.com/scholar?q=TreeSHAP" },
+                { title: "A Survey of Explainable AI", authors: "Various", year: "2020", url: "https://scholar.google.com/scholar?q=survey%20explainable%20AI" }
+            ],
+
+            "NOTEARS (Causal Discovery)": [
+                { title: "DAGs with NO TEARS: Continuous Optimization for Structure Learning (NOTEARS)", authors: "Zheng et al.", year: "2018", url: "https://arxiv.org/abs/1803.01422" },
+                { title: "Causal Discovery with Reinforcement Learning", authors: "Yu et al.", year: "2019", url: "https://arxiv.org/abs/1906.04477" },
+                { title: "Causal Inference in Statistics: A Primer", authors: "Pearl et al.", year: "2016", url: "https://scholar.google.com/scholar?q=Causal%20Inference%20in%20Statistics%20A%20Primer%20Pearl" },
+                { title: "Causal Discovery Book", authors: "Spirtes et al.", year: "2000", url: "https://scholar.google.com/scholar?q=Causation%20Prediction%20and%20Search%20Spirtes" },
+                { title: "A Survey on Causal Discovery", authors: "Glymour et al.", year: "2019", url: "https://scholar.google.com/scholar?q=survey%20causal%20discovery%20Glymour" }
+            ]
+        };
+
+        function getPathNodes(node) {
+            if (!node) return [];
+            return node.ancestors().slice().reverse();
+        }
+
+        function renderMiniPathGraph(node) {
+            const path = getPathNodes(node);
+            const parts = path.map(p => escapeHtml(p.data?.name ?? ""));
+            const joined = parts.map((t, i) => {
+                if (i === 0) return `<span>${t}</span>`;
+                return `<span class="arrow">→</span><span>${t}</span>`;
+            }).join("");
+
+            return `
+                <div class="mini-graph">
+                    <div class="mini-path">${joined}</div>
+                </div>
+            `;
+        }
+
+        function getPaperSource(url) {
+            const u = String(url || "");
+            const lower = u.toLowerCase();
+            if (!lower) return "Link";
+            if (lower.includes("arxiv.org")) return "arXiv";
+            if (lower.includes("openreview.net")) return "OpenReview";
+            if (lower.includes("acm.org")) return "ACM";
+            if (lower.includes("ieee.org")) return "IEEE";
+            if (lower.includes("nature.com")) return "Nature";
+            if (lower.includes("scholar.google")) return "Scholar";
+            return "Link";
+        }
+
+        function getPaperHost(url) {
+            try {
+                const u = new URL(String(url));
+                return u.host;
+            } catch {
+                return "";
+            }
+        }
+
+        function openModalForNode(node) {
+            const name = node?.data?.name ?? "(unknown)";
+            modalTitle.textContent = name;
+
+            const mini = renderMiniPathGraph(node);
+            const items = papersByMethod[name] || [];
+            if (!items.length) {
+                modalBody.innerHTML = `
+                    ${mini}
+                    <div class="empty-state">
+                        Bu node için makale listesi tanımlı değil.<br/>
+                        <span style="color:#c9d1d9; font-weight:700;">papersByMethod</span> objesine bu isimle ekleyebilirsin.
+                    </div>
+                `;
+            } else {
+                const html = items.map((p) => {
+                    const title = p.title ?? "(untitled)";
+                    const authors = p.authors ?? "";
+                    const year = p.year ?? "";
+                    const url = p.url ?? "";
+                    const source = getPaperSource(url);
+                    const host = getPaperHost(url);
+                    const metaParts = [source, host].filter(Boolean).join(" • ");
+                    const titleHtml = url
+                        ? `<a class="paper-title-link" href="${escapeAttr(url)}" target="_blank" rel="noreferrer">${escapeHtml(title)}</a>`
+                        : `<div class="paper-title-plain">${escapeHtml(title)}</div>`;
+                    return `
+                        <div class="paper-item">
+                            <div class="paper-left">
+                                <div class="paper-source">${escapeHtml(source)}</div>
+                                ${host ? `<div class="paper-host">${escapeHtml(host)}</div>` : `<div class="paper-host">&nbsp;</div>`}
+                                <div class="paper-year">${escapeHtml(year || "")}</div>
+                            </div>
+                            <div class="paper-main">
+                                ${titleHtml}
+                                ${authors ? `<div class="paper-authors">${escapeHtml(authors)}</div>` : ""}
+                                <div class="paper-meta">${escapeHtml(metaParts)}</div>
+                                ${url ? `<div class="paper-actions"><a class="paper-link" href="${escapeAttr(url)}" target="_blank" rel="noreferrer">Open</a></div>` : ""}
+                            </div>
+                        </div>
+                    `;
+                }).join("");
+                modalBody.innerHTML = `${mini}<div class="papers">${html}</div>`;
+            }
+
+            modalBackdrop.classList.add("open");
+            modalBackdrop.setAttribute("aria-hidden", "false");
+        }
+
+        function closeModal() {
+            modalBackdrop.classList.remove("open");
+            modalBackdrop.setAttribute("aria-hidden", "true");
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#39;");
+        }
+
+        function escapeAttr(value) {
+            return escapeHtml(value);
+        }
+
+        modalClose.addEventListener("click", closeModal);
+        modalBackdrop.addEventListener("click", (e) => {
+            if (e.target === modalBackdrop) closeModal();
+        });
+        window.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") closeModal();
+        });
+
+        function clampDisk(p, maxR = 0.98) {
+            const r = Math.hypot(p.x, p.y);
+            if (r <= maxR) return p;
+            const s = maxR / (r || 1);
+            return { x: p.x * s, y: p.y * s };
+        }
+
+        function mobiusTransform(z, a) {
+            // z' = (z - a) / (1 - conj(a) z)
+            const zx = z.x, zy = z.y;
+            const ax = a.x, ay = a.y;
+            const denomRe = 1 - (ax * zx + ay * zy);
+            const denomIm = - (ax * zy - ay * zx);
+            const denom = denomRe * denomRe + denomIm * denomIm;
+            if (denom < 1e-12) return { x: 0, y: 0 };
+
+            const numRe = zx - ax;
+            const numIm = zy - ay;
+
+            // (numRe + i numIm) / (denomRe + i denomIm)
+            return {
+                x: (numRe * denomRe + numIm * denomIm) / denom,
+                y: (numIm * denomRe - numRe * denomIm) / denom,
+            };
+        }
+
+        function mobiusAdd(a, b) {
+            // a ⊕ b = (a + b) / (1 + conj(a) b)
+            const ax = a.x, ay = a.y;
+            const bx = b.x, by = b.y;
+
+            const num = { x: ax + bx, y: ay + by };
+
+            const denomRe = 1 + (ax * bx + ay * by);
+            const denomIm = (ax * by - ay * bx);
+            const denom = denomRe * denomRe + denomIm * denomIm;
+            if (denom < 1e-12) return { x: 0, y: 0 };
+
+            return {
+                x: (num.x * denomRe + num.y * denomIm) / denom,
+                y: (num.y * denomRe - num.x * denomIm) / denom,
+            };
+        }
+
+        function baseDiskPos(d) {
+            // Depth -> hyperbolic radius in (0,1)
+            const r = Math.tanh(d.depth * HYP_STEP);
+            const theta = d.x;
+            return { x: r * Math.cos(theta), y: r * Math.sin(theta) };
+        }
+
+        function screenPos(d, Rpx, cx, cy) {
+            const z = baseDiskPos(d);
+            const z2 = mobiusTransform(z, focus);
+            return { x: cx + z2.x * Rpx, y: cy + z2.y * Rpx, r: Math.hypot(z2.x, z2.y) };
+        }
+
+        function tickFocus() {
+            // Smoothly move focus towards target
+            const lerp = 0.16;
+            const delta = { x: (focusTarget.x - focus.x) * lerp, y: (focusTarget.y - focus.y) * lerp };
+            focus = clampDisk({ x: focus.x + delta.x, y: focus.y + delta.y });
+        }
+
+        // Build scene once, then update positions/styles without recreating DOM
+        const pos = new Map();
+        let scene = {
+            width: 0,
+            height: 0,
+            cx: 0,
+            cy: 0,
+            Rpx: 1,
+            nodes: [],
+            links: [],
+            bg: null,
+            disk: null,
+            linkSel: null,
+            nodeSel: null,
+        };
+
+        const NODE_H = 28;
+        const NODE_H_ROOT = 34;
+        const PADDING_X = 12;
+        const MIN_W = 120;
+        const MAX_W = 260;
+
+        function resizeScene() {
+            scene.width = window.innerWidth;
+            scene.height = window.innerHeight;
+            scene.cx = scene.width / 2;
+            scene.cy = scene.height / 2;
+            scene.Rpx = Math.min(scene.width, scene.height) / 2 - 28;
+            currentRpx = scene.Rpx;
+            svg.attr("width", scene.width).attr("height", scene.height);
+            if (scene.bg) {
+                scene.bg.attr("width", scene.width).attr("height", scene.height);
+            }
+            if (scene.disk) {
+                scene.disk.attr("cx", scene.cx).attr("cy", scene.cy).attr("r", scene.Rpx);
+            }
+        }
+
+        function initScene() {
+            radial(root);
+            scene.nodes = root.descendants();
+            scene.links = root.links();
+
+            // Background interaction layer
+            scene.bg = g.append("rect")
+                .attr("x", 0)
+                .attr("y", 0)
+                .attr("fill", "transparent")
+                .style("pointer-events", "all");
+
+            scene.bg.on("dblclick", (event) => {
+                focusTarget = { x: 0, y: 0 };
+                focus = { x: 0, y: 0 };
+                selectedNode = null;
+                event.preventDefault();
+            });
+
+            scene.bg.call(
+                d3.drag()
+                    .filter(() => !modalBackdrop.classList.contains("open"))
+                    .on("start", () => {
+                        focusTarget = { ...focus };
+                    })
+                    .on("drag", (event) => {
+                        const dx = -event.dx / (scene.Rpx || 1);
+                        const dy = -event.dy / (scene.Rpx || 1);
+                        const step = 0.85;
+                        const delta = clampDisk({ x: dx * step, y: dy * step }, 0.35);
+                        focusTarget = clampDisk(mobiusAdd(focusTarget, delta));
+                    })
+            );
+
+            scene.disk = g.append("circle")
+                .attr("class", "disk");
+
+            scene.linkSel = g.append("g")
+                .attr("class", "links")
+                .selectAll("path")
+                .data(scene.links)
+                .join("path")
+                .attr("class", "link");
+
+            scene.nodeSel = g.append("g")
+                .attr("class", "nodes")
+                .selectAll("g")
+                .data(scene.nodes)
+                .join("g")
+                .attr("class", d => (d.depth === 0 ? "node root" : "node"))
+                .style("pointer-events", "all")
+                .on("click", (event, d) => {
+                    focusTarget = clampDisk(baseDiskPos(d));
+                    selectedNode = d;
+                    const isLeaf = !d.data?.children || d.data.children.length === 0;
+                    if (isLeaf) openModalForNode(d);
+                    event.preventDefault();
+                    event.stopPropagation();
+                })
+                .on("dblclick", (event) => {
+                    focusTarget = { x: 0, y: 0 };
+                    focus = { x: 0, y: 0 };
+                    selectedNode = null;
+                    event.preventDefault();
+                    event.stopPropagation();
+                });
+
+            // Big hit area
+            scene.nodeSel.append("circle")
+                .attr("r", 16)
+                .attr("fill", "transparent")
+                .attr("stroke", "none")
+                .style("pointer-events", "all");
+
+            // Card visuals
+            scene.nodeSel.append("rect")
+                .attr("x", -MIN_W / 2)
+                .attr("y", d => -(d.depth === 0 ? NODE_H_ROOT : NODE_H) / 2)
+                .attr("width", MIN_W)
+                .attr("height", d => (d.depth === 0 ? NODE_H_ROOT : NODE_H));
+
+            scene.nodeSel.append("text")
+                .attr("text-anchor", "middle")
+                .attr("dominant-baseline", "middle")
+                .attr("y", 0.5)
+                .text(d => d.data.name);
+
+            // Measure once and store width per node
+            scene.nodeSel.each(function (d) {
+                const group = d3.select(this);
+                const textNode = group.select("text").node();
+                const textW = textNode ? Math.ceil(textNode.getComputedTextLength()) : 0;
+                d._w = Math.max(MIN_W, Math.min(MAX_W, textW + PADDING_X * 2));
+                group.select("rect").attr("x", -d._w / 2).attr("width", d._w);
+            });
+
+            resizeScene();
+        }
+
+        function updateScene() {
+            // Precompute screen positions (dependent on focus)
+            pos.clear();
+            for (const n of scene.nodes) {
+                pos.set(n, screenPos(n, scene.Rpx, scene.cx, scene.cy));
+            }
+
+            const selectedPathSet = new Set(getPathNodes(selectedNode));
+
+            // Links
+            scene.linkSel
+                .classed("selected", (l) => selectedPathSet.has(l.source) && selectedPathSet.has(l.target))
+                .attr("d", (l) => {
+                    const s = pos.get(l.source);
+                    const t = pos.get(l.target);
+                    const mx = (s.x + t.x) / 2;
+                    const my = (s.y + t.y) / 2;
+                    const k = 0.22;
+                    const cx1 = mx + (scene.cx - mx) * k;
+                    const cy1 = my + (scene.cy - my) * k;
+                    return `M ${s.x} ${s.y} Q ${cx1} ${cy1} ${t.x} ${t.y}`;
+                })
+                .attr("opacity", (l) => {
+                    const t = pos.get(l.target);
+                    return Math.max(0.12, 1 - t.r * 0.9);
+                });
+
+            // Nodes
+            scene.nodeSel
+                .attr("transform", d => {
+                    const p = pos.get(d);
+                    return `translate(${p.x},${p.y})`;
+                })
+                .classed("selected", d => selectedPathSet.has(d));
+
+            scene.nodeSel.select("rect")
+                .attr("x", d => -(d._w || MIN_W) / 2)
+                .attr("y", d => -(d.depth === 0 ? NODE_H_ROOT : NODE_H) / 2)
+                .attr("width", d => (d._w || MIN_W))
+                .attr("height", d => (d.depth === 0 ? NODE_H_ROOT : NODE_H))
+                .attr("opacity", d => {
+                    const p = pos.get(d);
+                    return Math.max(0.20, 1 - p.r * 0.85);
+                });
+
+            scene.nodeSel.select("text")
+                .attr("opacity", d => {
+                    const p = pos.get(d);
+                    return Math.max(0.0, 1 - p.r * 1.15);
+                });
+
+            // Disk
+            scene.disk
+                .attr("cx", scene.cx)
+                .attr("cy", scene.cy)
+                .attr("r", scene.Rpx);
+        }
+
+        // Animation loop for smooth focusing
+        function animate() {
+            tickFocus();
+            updateScene();
+            requestAnimationFrame(animate);
+        }
+
+        initScene();
+        updateScene();
+        animate();
+
+        window.addEventListener("resize", () => {
+            resizeScene();
+            updateScene();
+        });
+    </script>
+</body>
+</html>
