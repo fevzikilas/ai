@@ -25,6 +25,69 @@
             height: 100vh;
         }
 
+        .back-to-kilas {
+            position: fixed;
+            top: 3%;
+            right: 2%;
+            z-index: 1000;
+            background: #000000;
+            border: 2px solid #30363d;
+            color: #ffffff;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-weight: 800;
+            font-size: 15px;
+            letter-spacing: 0.2px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            line-height: 1;
+            user-select: none;
+        }
+
+        .back-to-kilas:hover {
+            border-color: #58a6ff;
+        }
+
+        .info-box {
+            position: fixed;
+            right: 1%;
+            bottom: 2%;
+            z-index: 1000;
+            background: #0f1622;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 10px 12px;
+            max-width: min(420px, calc(100vw - 24px));
+            color: #c9d1d9;
+        }
+
+
+        .info-row {
+            display: flex;
+            gap: 8px;
+            align-items: baseline;
+            flex-wrap: wrap;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .info-label {
+            color: #8b949e;
+            font-weight: 700;
+        }
+
+        .info-link {
+            color: #58a6ff;
+            text-decoration: none;
+            font-weight: 800;
+        }
+
+        .info-link:hover {
+            text-decoration: underline;
+        }
+
         #tree-container {
             width: 100%;
             height: 100vh;
@@ -125,6 +188,34 @@
             border: 1px solid #30363d;
             border-radius: 12px;
             padding: 16px;
+            scrollbar-gutter: stable;
+            scrollbar-width: thin;
+            scrollbar-color: #30363d #0d1117;
+        }
+
+        /* Modal scrollbar (Chromium/WebKit) */
+        .modal::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        .modal::-webkit-scrollbar-track {
+            background: #0d1117;
+            border-radius: 999px;
+        }
+
+        .modal::-webkit-scrollbar-thumb {
+            background: #30363d;
+            border-radius: 999px;
+            border: 2px solid #0d1117;
+        }
+
+        .modal::-webkit-scrollbar-thumb:hover {
+            background: #3d444d;
+        }
+
+        .modal::-webkit-scrollbar-corner {
+            background: #0d1117;
         }
 
         .modal-header {
@@ -165,6 +256,32 @@
             gap: 10px;
         }
 
+        .papers-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 8px 0 14px;
+        }
+
+        .papers-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 7px 10px;
+            border-radius: 10px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .papers-action:hover {
+            border-color: #58a6ff;
+            color: #ffffff;
+        }
+
         .mini-graph {
             background: #0d1117;
             border: 1px solid #21262d;
@@ -189,22 +306,31 @@
         }
 
         .paper-item {
-            background: #0d1117;
+            background: rgba(13, 17, 23, 0.9);
             border: 1px solid #21262d;
             border-radius: 12px;
-            overflow: hidden;
-            display: grid;
-            grid-template-columns: 118px 1fr;
-            min-height: 64px;
-        }
-
-        .paper-left {
-            border-right: 1px solid #21262d;
-            background: rgba(88, 166, 255, 0.06);
-            padding: 10px 10px;
+            padding: 12px 14px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 8px;
+        }
+
+        .paper-item:hover {
+            border-color: #30363d;
+        }
+
+        .paper-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .paper-badges {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
         .paper-source {
@@ -222,30 +348,35 @@
             text-transform: uppercase;
         }
 
-        .paper-host {
-            color: #8b949e;
-            font-size: 11px;
-            word-break: break-word;
-        }
-
-        .paper-year {
-            margin-top: auto;
+        .paper-year-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3px 8px;
+            border-radius: 999px;
+            border: 1px solid #30363d;
+            background: #161b22;
             color: #c9d1d9;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 800;
         }
 
+        .paper-meta-inline {
+            color: #8b949e;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
         .paper-main {
-            padding: 10px 12px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 7px;
         }
 
         .paper-title-link,
         .paper-title-plain {
             font-weight: 800;
-            font-size: 13px;
+            font-size: 14px;
             line-height: 1.35;
         }
 
@@ -268,36 +399,33 @@
             opacity: 0.9;
         }
 
+        .paper-open {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 10px;
+            border-radius: 10px;
+            background: transparent;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .paper-open:hover {
+            border-color: #58a6ff;
+            color: #ffffff;
+        }
+
         .paper-meta {
             color: #8b949e;
             font-size: 12px;
             line-height: 1.45;
         }
 
-        .paper-actions {
-            display: flex;
-            gap: 8px;
-            margin-top: 2px;
-        }
 
-        .paper-link {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 6px 10px;
-            border-radius: 10px;
-            background: #161b22;
-            border: 1px solid #30363d;
-            color: #c9d1d9;
-            text-decoration: none;
-            font-size: 12px;
-            font-weight: 700;
-        }
-
-        .paper-link:hover {
-            border-color: #58a6ff;
-            color: #ffffff;
-        }
 
         .empty-state {
             color: #8b949e;
@@ -310,6 +438,27 @@
 <body>
     <div id="tree-container"></div>
 
+    <a class="back-to-kilas" href="https://kilas.dev">Back to kilas.dev</a>
+
+    <div class="info-box" aria-label="Information">
+        <div style="margin-bottom: 6px; font-size: 15px; font-weight: 800; color: #ffffff; font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; line-height: 1.35; text-align: center; ">
+            A Dynamic Taxonomy of<br>
+            Artificial Intelligence Research Areas
+        </div>
+        <div class="info-row">
+            <span class="info-label">Github:</span>
+            <a class="info-link" href="https://github.com/fevzikilas/ai" target="_blank" rel="noopener noreferrer">github.com/fevzikilas/ai</a>
+        </div>
+        <div class="info-row" style="margin-top: 6px;">
+            <span class="info-label">Paper:</span>
+            <span style="color: #8b949e; font-weight: 700;">(soon)</span>
+        </div>
+        <div class="info-row" style="margin-top: 6px;">
+            <span class="info-label">- ! </span>
+            <span style="color: #8b949e; font-weight: 700;">Double-click to return to the center.</span>
+        </div>
+    </div>
+
     <div id="modal-backdrop" class="modal-backdrop" aria-hidden="true">
         <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
             <div class="modal-header">
@@ -321,7 +470,7 @@
     </div>
 
     <script>
-        // AI Research Taxonomy (all-AI, curated; leaves = research methods)
+        // AI Research Taxonomy (all-AI, curated; leaves = research areas)
         const treeData = {
             name: "Artificial Intelligence",
             children: [
@@ -331,25 +480,25 @@
                         {
                             name: "Probabilistic ML",
                             children: [
-                                { name: "Gaussian Processes" },
+                                { name: "Gaussian Process Models" },
                                 { name: "Variational Inference" },
-                                { name: "MCMC" },
+                                { name: "Markov Chain Monte Carlo" },
                                 { name: "Bayesian Optimization" }
                             ]
                         },
                         {
                             name: "Optimization & Training",
                             children: [
-                                { name: "Adam / AdamW" },
-                                { name: "Mixed Precision Training" },
-                                { name: "DP-SGD (Differential Privacy)" }
+                                { name: "Adaptive Optimization" },
+                                { name: "Mixed Precision & Distributed Training" },
+                                { name: "Differential Privacy in ML" }
                             ]
                         },
                         {
                             name: "Generalization & Robustness",
                             children: [
-                                { name: "Adversarial Training" },
-                                { name: "Calibration (Temperature Scaling)" }
+                                { name: "Adversarial Robustness" },
+                                { name: "Calibration & Uncertainty" }
                             ]
                         }
                     ]
@@ -360,21 +509,21 @@
                         {
                             name: "Self-Supervised Learning",
                             children: [
-                                { name: "Contrastive Learning (SimCLR/MoCo)" },
-                                { name: "Masked Autoencoders (MAE)" }
+                                { name: "Contrastive Self-Supervised Learning" },
+                                { name: "Masked-Modeling Self-Supervised Learning" }
                             ]
                         },
                         {
                             name: "Meta & Continual",
                             children: [
-                                { name: "MAML (Meta-Learning)" },
-                                { name: "EWC (Continual Learning)" }
+                                { name: "Meta-Learning" },
+                                { name: "Continual Learning" }
                             ]
                         },
                         {
                             name: "Federated & Distributed",
                             children: [
-                                { name: "Federated Learning (FedAvg)" }
+                                { name: "Federated Learning" }
                             ]
                         }
                     ]
@@ -385,17 +534,16 @@
                         {
                             name: "Transformers & SSMs",
                             children: [
-                                { name: "Transformer" },
-                                { name: "FlashAttention" },
-                                { name: "Mixture of Experts (MoE)" },
-                                { name: "Mamba / State Space Models" }
+                                { name: "Transformer-based Sequence Modeling" },
+                                { name: "Efficient Attention Mechanisms" },
+                                { name: "Conditional Computation (Mixture-of-Experts)" },
+                                { name: "State Space Sequence Models" }
                             ]
                         },
                         {
                             name: "Graphs",
                             children: [
-                                { name: "GCN (Graph Convolutional Networks)" },
-                                { name: "GAT (Graph Attention Networks)" }
+                                { name: "Graph Representation Learning" }
                             ]
                         }
                     ]
@@ -406,31 +554,31 @@
                         {
                             name: "Pretraining Objectives",
                             children: [
-                                { name: "Causal Language Modeling" },
-                                { name: "Masked Language Modeling (BERT)" }
+                                { name: "Autoregressive Language Modeling" },
+                                { name: "Masked Language Modeling" }
                             ]
                         },
                         {
                             name: "Fine-tuning & Adaptation",
                             children: [
-                                { name: "LoRA (Low-Rank Adaptation)" },
-                                { name: "QLoRA" }
+                                { name: "Parameter-Efficient Fine-Tuning" },
+                                { name: "Quantized Fine-Tuning" }
                             ]
                         },
                         {
                             name: "Alignment",
                             children: [
-                                { name: "RLHF (InstructGPT)" },
-                                { name: "DPO (Direct Preference Optimization)" },
+                                { name: "RLHF" },
+                                { name: "Preference Optimization" },
                                 { name: "Constitutional AI" }
                             ]
                         },
                         {
                             name: "Retrieval & Inference",
                             children: [
-                                { name: "RAG (Retrieval-Augmented Generation)" },
-                                { name: "Speculative Decoding" },
-                                { name: "LLM Quantization" }
+                                { name: "Retrieval-Augmented Generation" },
+                                { name: "Efficient Decoding" },
+                                { name: "LLM Compression & Quantization" }
                             ]
                         }
                     ]
@@ -441,30 +589,30 @@
                         {
                             name: "Recognition",
                             children: [
-                                { name: "ResNet" },
-                                { name: "Vision Transformer (ViT)" }
+                                { name: "Supervised Image Classification" },
+                                { name: "Self-Supervised Vision Representation Learning" }
                             ]
                         },
                         {
                             name: "Detection",
                             children: [
-                                { name: "YOLO" },
-                                { name: "DETR" }
+                                { name: "Single-Stage Object Detection" },
+                                { name: "Set Prediction Object Detection" }
                             ]
                         },
                         {
                             name: "Segmentation",
                             children: [
-                                { name: "U-Net" },
-                                { name: "Mask R-CNN" },
-                                { name: "Segment Anything (SAM)" }
+                                { name: "Encoder–Decoder Segmentation" },
+                                { name: "Instance Segmentation" },
+                                { name: "Promptable Segmentation" }
                             ]
                         },
                         {
                             name: "3D Vision",
                             children: [
-                                { name: "NeRF" },
-                                { name: "3D Gaussian Splatting" }
+                                { name: "Neural Radiance Fields" },
+                                { name: "Point-Based / Gaussian Scene Representation" }
                             ]
                         }
                     ]
@@ -475,22 +623,22 @@
                         {
                             name: "Diffusion",
                             children: [
-                                { name: "DDPM / Score-Based Diffusion" },
-                                { name: "DDIM" },
-                                { name: "Latent Diffusion (Stable Diffusion)" }
+                                { name: "Score-Based Diffusion Models" },
+                                { name: "Fast Diffusion Sampling" },
+                                { name: "Latent Diffusion for Text-to-Image" }
                             ]
                         },
                         {
                             name: "GANs",
                             children: [
-                                { name: "GAN" },
-                                { name: "StyleGAN2" }
+                                { name: "GAN Training & Stability" },
+                                { name: "Style-Based Generators" }
                             ]
                         },
                         {
                             name: "VAEs",
                             children: [
-                                { name: "VAE" }
+                                { name: "Variational Autoencoders" }
                             ]
                         }
                     ]
@@ -498,54 +646,53 @@
                 {
                     name: "Speech & Audio",
                     children: [
-                        { name: "Whisper (ASR)" },
-                        { name: "Tacotron 2 (TTS)" },
-                        { name: "VALL-E (Neural Codec Language Models)" }
+                        { name: "Automatic Speech Recognition" },
+                        { name: "Text-to-Speech" },
+                        { name: "Neural Audio Generation" }
                     ]
                 },
                 {
                     name: "Multimodal",
                     children: [
-                        { name: "CLIP" },
-                        { name: "LLaVA" }
+                        { name: "Vision–Language Pretraining" },
+                        { name: "Vision–Language Instruction Tuning" }
                     ]
                 },
                 {
                     name: "RL & Control",
                     children: [
-                        { name: "DQN" },
-                        { name: "PPO" },
-                        { name: "SAC" },
-                        { name: "AlphaZero / MCTS" },
-                        { name: "Dreamer (Model-Based RL)" }
+                        { name: "Value-Based Deep RL" },
+                        { name: "On-Policy Policy Optimization" },
+                        { name: "Off-Policy Actor–Critic" },
+                        { name: "Search & Planning (MCTS)" },
+                        { name: "Model-Based RL (World Models)" }
                     ]
                 },
                 {
                     name: "Robotics & Embodied AI",
                     children: [
-                        { name: "Behavior Cloning" },
-                        { name: "GAIL" },
-                        { name: "RT-1 / RT-2 (Vision-Language-Action)" }
+                        { name: "Imitation Learning" },
+                        { name: "Vision–Language–Action Robotics" }
                     ]
                 },
                 {
                     name: "Agents",
                     children: [
-                        { name: "ReAct" },
-                        { name: "Toolformer" }
+                        { name: "Reasoning & Acting Agents" },
+                        { name: "Tool-Augmented LLM Agents" }
                     ]
                 },
                 {
                     name: "Interpretability",
                     children: [
-                        { name: "Integrated Gradients" },
-                        { name: "SHAP" }
+                        { name: "Attribution Methods" },
+                        { name: "Shapley-based Explanations" }
                     ]
                 },
                 {
                     name: "Causality",
                     children: [
-                        { name: "NOTEARS (Causal Discovery)" }
+                        { name: "Causal Structure Learning" }
                     ]
                 }
             ]
@@ -1041,6 +1188,112 @@
             ]
         };
 
+        function normalizePaperKey(p) {
+            const title = String(p?.title || "").trim().toLowerCase();
+            const url = String(p?.url || "").trim().toLowerCase();
+            return `${url}::${title}`;
+        }
+
+        function mergePapersByMethodNames(methodNames) {
+            const out = [];
+            const seen = new Set();
+            for (const methodName of methodNames) {
+                const list = papersByMethod[methodName] || [];
+                for (const p of list) {
+                    const key = normalizePaperKey(p);
+                    if (seen.has(key)) continue;
+                    seen.add(key);
+                    out.push(p);
+                }
+            }
+            return out;
+        }
+
+        // Leaf node name -> paper list
+        const papersByArea = {
+            "Gaussian Process Models": mergePapersByMethodNames(["Gaussian Processes"]),
+            "Variational Inference": mergePapersByMethodNames(["Variational Inference"]),
+            "Markov Chain Monte Carlo": mergePapersByMethodNames(["MCMC"]),
+            "Bayesian Optimization": mergePapersByMethodNames(["Bayesian Optimization"]),
+
+            "Adaptive Optimization": mergePapersByMethodNames(["Adam / AdamW"]),
+            "Mixed Precision & Distributed Training": mergePapersByMethodNames(["Mixed Precision Training"]),
+            "Differential Privacy in ML": mergePapersByMethodNames(["DP-SGD (Differential Privacy)"]),
+
+            "Adversarial Robustness": mergePapersByMethodNames(["Adversarial Training"]),
+            "Calibration & Uncertainty": mergePapersByMethodNames(["Calibration (Temperature Scaling)"]),
+
+            "Contrastive Self-Supervised Learning": mergePapersByMethodNames(["Contrastive Learning (SimCLR/MoCo)"]),
+            "Masked-Modeling Self-Supervised Learning": mergePapersByMethodNames(["Masked Autoencoders (MAE)"]),
+            "Meta-Learning": mergePapersByMethodNames(["MAML (Meta-Learning)"]),
+            "Continual Learning": mergePapersByMethodNames(["EWC (Continual Learning)"]),
+            "Federated Learning": mergePapersByMethodNames(["Federated Learning (FedAvg)"]),
+
+            "Transformer-based Sequence Modeling": mergePapersByMethodNames(["Transformer"]),
+            "Efficient Attention Mechanisms": mergePapersByMethodNames(["FlashAttention"]),
+            "Conditional Computation (Mixture-of-Experts)": mergePapersByMethodNames(["Mixture of Experts (MoE)"]),
+            "State Space Sequence Models": mergePapersByMethodNames(["Mamba / State Space Models"]),
+            "Graph Representation Learning": mergePapersByMethodNames([
+                "GCN (Graph Convolutional Networks)",
+                "GAT (Graph Attention Networks)"
+            ]),
+
+            "Autoregressive Language Modeling": mergePapersByMethodNames(["Causal Language Modeling"]),
+            "Masked Language Modeling": mergePapersByMethodNames(["Masked Language Modeling (BERT)"]),
+            "Parameter-Efficient Fine-Tuning": mergePapersByMethodNames(["LoRA (Low-Rank Adaptation)"]),
+            "Quantized Fine-Tuning": mergePapersByMethodNames(["QLoRA"]),
+            "RLHF": mergePapersByMethodNames(["RLHF (InstructGPT)"]),
+            "Preference Optimization": mergePapersByMethodNames(["DPO (Direct Preference Optimization)"]),
+            "Constitutional AI": mergePapersByMethodNames(["Constitutional AI"]),
+            "Retrieval-Augmented Generation": mergePapersByMethodNames(["RAG (Retrieval-Augmented Generation)"]),
+            "Efficient Decoding": mergePapersByMethodNames(["Speculative Decoding"]),
+            "LLM Compression & Quantization": mergePapersByMethodNames(["LLM Quantization"]),
+
+            "Supervised Image Classification": mergePapersByMethodNames(["ResNet", "Vision Transformer (ViT)"]),
+            "Self-Supervised Vision Representation Learning": mergePapersByMethodNames([
+                "Contrastive Learning (SimCLR/MoCo)",
+                "Masked Autoencoders (MAE)"
+            ]),
+            "Single-Stage Object Detection": mergePapersByMethodNames(["YOLO"]),
+            "Set Prediction Object Detection": mergePapersByMethodNames(["DETR"]),
+            "Encoder–Decoder Segmentation": mergePapersByMethodNames(["U-Net"]),
+            "Instance Segmentation": mergePapersByMethodNames(["Mask R-CNN"]),
+            "Promptable Segmentation": mergePapersByMethodNames(["Segment Anything (SAM)"]),
+            "Neural Radiance Fields": mergePapersByMethodNames(["NeRF"]),
+            "Point-Based / Gaussian Scene Representation": mergePapersByMethodNames(["3D Gaussian Splatting"]),
+
+            "Score-Based Diffusion Models": mergePapersByMethodNames(["DDPM / Score-Based Diffusion"]),
+            "Fast Diffusion Sampling": mergePapersByMethodNames(["DDIM"]),
+            "Latent Diffusion for Text-to-Image": mergePapersByMethodNames(["Latent Diffusion (Stable Diffusion)"]),
+            "GAN Training & Stability": mergePapersByMethodNames(["GAN"]),
+            "Style-Based Generators": mergePapersByMethodNames(["StyleGAN2"]),
+            "Variational Autoencoders": mergePapersByMethodNames(["VAE"]),
+
+            "Automatic Speech Recognition": mergePapersByMethodNames(["Whisper (ASR)"]),
+            "Text-to-Speech": mergePapersByMethodNames(["Tacotron 2 (TTS)"]),
+            "Neural Audio Generation": mergePapersByMethodNames(["VALL-E (Neural Codec Language Models)"]),
+
+            "Vision–Language Pretraining": mergePapersByMethodNames(["CLIP"]),
+            "Vision–Language Instruction Tuning": mergePapersByMethodNames(["LLaVA"]),
+
+            "Value-Based Deep RL": mergePapersByMethodNames(["DQN"]),
+            "On-Policy Policy Optimization": mergePapersByMethodNames(["PPO"]),
+            "Off-Policy Actor–Critic": mergePapersByMethodNames(["SAC"]),
+            "Search & Planning (MCTS)": mergePapersByMethodNames(["AlphaZero / MCTS"]),
+            "Model-Based RL (World Models)": mergePapersByMethodNames(["Dreamer (Model-Based RL)"]),
+
+            "Imitation Learning": mergePapersByMethodNames(["Behavior Cloning", "GAIL"]),
+            "Vision–Language–Action Robotics": mergePapersByMethodNames(["RT-1 / RT-2 (Vision-Language-Action)"]),
+
+            "Reasoning & Acting Agents": mergePapersByMethodNames(["ReAct"]),
+            "Tool-Augmented LLM Agents": mergePapersByMethodNames(["Toolformer"]),
+
+            "Attribution Methods": mergePapersByMethodNames(["Integrated Gradients"]),
+            "Shapley-based Explanations": mergePapersByMethodNames(["SHAP"]),
+
+            "Causal Structure Learning": mergePapersByMethodNames(["NOTEARS (Causal Discovery)"])
+        };
+
         function getPathNodes(node) {
             if (!node) return [];
             return node.ancestors().slice().reverse();
@@ -1083,22 +1336,62 @@
             }
         }
 
+        function getScholarSearchUrl(query) {
+            const q = encodeURIComponent(String(query || "").trim());
+            return `https://scholar.google.com/scholar?q=${q}`;
+        }
+
+        function getArxivSearchUrl(query) {
+            const q = encodeURIComponent(String(query || "").trim());
+            return `https://arxiv.org/search/?query=${q}&searchtype=all&source=header`;
+        }
+
+        function safeYearValue(p) {
+            const raw = String(p?.year ?? "").trim();
+            const m = raw.match(/\b(19\d{2}|20\d{2})\b/);
+            return m ? Number(m[1]) : -1;
+        }
+
+        function addMorePaperLinksToAllMethods() {
+            for (const key of Object.keys(papersByMethod)) {
+                const list = papersByMethod[key];
+                if (!Array.isArray(list)) continue;
+                const moreUrl = getScholarSearchUrl(key);
+                const already = list.some(p => String(p?.url || "").trim() === moreUrl);
+                if (already) continue;
+                list.push({
+                    title: `More papers: ${key} (Google Scholar)`,
+                    authors: "",
+                    year: "",
+                    url: moreUrl
+                });
+            }
+        }
+
         function openModalForNode(node) {
             const name = node?.data?.name ?? "(unknown)";
             modalTitle.textContent = name;
 
             const mini = renderMiniPathGraph(node);
-            const items = papersByMethod[name] || [];
+            const actions = `
+                <div class="papers-actions">
+                    <a class="papers-action" href="${escapeAttr(getScholarSearchUrl(name))}" target="_blank" rel="noreferrer">Scholar search</a>
+                    <a class="papers-action" href="${escapeAttr(getArxivSearchUrl(name))}" target="_blank" rel="noreferrer">arXiv search</a>
+                </div>
+            `;
+            const items = papersByArea[name] || [];
             if (!items.length) {
                 modalBody.innerHTML = `
                     ${mini}
+                    ${actions}
                     <div class="empty-state">
                         Bu node için makale listesi tanımlı değil.<br/>
-                        <span style="color:#c9d1d9; font-weight:700;">papersByMethod</span> objesine bu isimle ekleyebilirsin.
+                        <span style="color:#c9d1d9; font-weight:700;">papersByArea</span> objesine bu isimle ekleyebilirsin.
                     </div>
                 `;
             } else {
-                const html = items.map((p) => {
+                const sorted = [...items].sort((a, b) => safeYearValue(b) - safeYearValue(a));
+                const html = sorted.map((p) => {
                     const title = p.title ?? "(untitled)";
                     const authors = p.authors ?? "";
                     const year = p.year ?? "";
@@ -1109,23 +1402,27 @@
                     const titleHtml = url
                         ? `<a class="paper-title-link" href="${escapeAttr(url)}" target="_blank" rel="noreferrer">${escapeHtml(title)}</a>`
                         : `<div class="paper-title-plain">${escapeHtml(title)}</div>`;
+                    const openHtml = url
+                        ? `<a class="paper-open" href="${escapeAttr(url)}" target="_blank" rel="noreferrer">Open</a>`
+                        : "";
                     return `
                         <div class="paper-item">
-                            <div class="paper-left">
+                            <div class="paper-badges">
                                 <div class="paper-source">${escapeHtml(source)}</div>
-                                ${host ? `<div class="paper-host">${escapeHtml(host)}</div>` : `<div class="paper-host">&nbsp;</div>`}
-                                <div class="paper-year">${escapeHtml(year || "")}</div>
+                                ${year ? `<div class="paper-year-badge">${escapeHtml(year)}</div>` : ""}
+                                ${metaParts ? `<div class="paper-meta-inline">${escapeHtml(metaParts)}</div>` : ""}
                             </div>
-                            <div class="paper-main">
-                                ${titleHtml}
-                                ${authors ? `<div class="paper-authors">${escapeHtml(authors)}</div>` : ""}
-                                <div class="paper-meta">${escapeHtml(metaParts)}</div>
-                                ${url ? `<div class="paper-actions"><a class="paper-link" href="${escapeAttr(url)}" target="_blank" rel="noreferrer">Open</a></div>` : ""}
+                            <div class="paper-header">
+                                <div class="paper-main">
+                                    ${titleHtml}
+                                    ${authors ? `<div class="paper-authors">${escapeHtml(authors)}</div>` : ""}
+                                </div>
+                                ${openHtml}
                             </div>
                         </div>
                     `;
                 }).join("");
-                modalBody.innerHTML = `${mini}<div class="papers">${html}</div>`;
+                modalBody.innerHTML = `${mini}${actions}<div class="papers">${html}</div>`;
             }
 
             modalBackdrop.classList.add("open");
@@ -1157,6 +1454,8 @@
         window.addEventListener("keydown", (e) => {
             if (e.key === "Escape") closeModal();
         });
+
+        addMorePaperLinksToAllMethods();
 
         function clampDisk(p, maxR = 0.98) {
             const r = Math.hypot(p.x, p.y);
