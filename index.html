@@ -19,10 +19,19 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background: #0d1117;
+            background: #000000;
             color: #c9d1d9;
             overflow: hidden;
             height: 100vh;
+        }
+
+        /* Subtle animated starfield (background) */
+        #bg-stars {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.9;
         }
 
         .back-to-kilas {
@@ -91,6 +100,8 @@
         #tree-container {
             width: 100%;
             height: 100vh;
+            position: relative;
+            z-index: 1;
         }
 
         svg {
@@ -436,6 +447,7 @@
     </style>
 </head>
 <body>
+    <canvas id="bg-stars" aria-hidden="true"></canvas>
     <div id="tree-container"></div>
 
     <a class="back-to-kilas" href="https://kilas.dev">Back to kilas.dev</a>
@@ -470,6 +482,108 @@
     </div>
 
     <script>
+        // Subtle starfield background (low contrast, slow) — keeps focus on the tree
+        const starsCanvas = document.getElementById("bg-stars");
+        const starsCtx = starsCanvas.getContext("2d", { alpha: true });
+        let stars = [];
+        let starsW = 0;
+        let starsH = 0;
+        let starsDpr = 1;
+        let starsCx = 0;
+        let starsCy = 0;
+        let starsMaxR = 0;
+        let mouseTarget = { x: 0, y: 0 };
+        let mouse = { x: 0, y: 0 };
+
+        function resizeStars() {
+            starsDpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+            starsW = window.innerWidth;
+            starsH = window.innerHeight;
+            starsCx = starsW / 2;
+            starsCy = starsH / 2;
+            starsMaxR = Math.hypot(starsW, starsH) / 2 + 24;
+            starsCanvas.width = Math.floor(starsW * starsDpr);
+            starsCanvas.height = Math.floor(starsH * starsDpr);
+            starsCanvas.style.width = `${starsW}px`;
+            starsCanvas.style.height = `${starsH}px`;
+            starsCtx.setTransform(starsDpr, 0, 0, starsDpr, 0, 0);
+
+            // Denser (still subtle)
+            const targetCount = Math.max(160, Math.min(420, Math.floor((starsW * starsH) / 7000)));
+            if (stars.length > targetCount) {
+                stars = stars.slice(0, targetCount);
+            }
+            while (stars.length < targetCount) {
+                stars.push(makeStar(true));
+            }
+        }
+
+        function rand(min, max) {
+            return min + Math.random() * (max - min);
+        }
+
+        function makeStar(randomPos = false) {
+            // Orbit around center (very slow). Depth controls parallax + angular speed.
+            const z = rand(0.15, 1.0); // nearer = bigger/brighter + faster angular speed
+            const radius = Math.sqrt(Math.random()) * (starsMaxR || 1);
+            const angle = rand(0, Math.PI * 2);
+            const omega = rand(0.00055, 0.0019) * (0.55 + 0.75 * z); // rad/s (still subtle)
+            const size = rand(0.35, 1.2) * (0.7 + 0.7 * z);
+            const baseA = rand(0.08, 0.28) * (0.7 + 0.6 * z);
+            const tw = rand(0.4, 1.4);
+            const phase = rand(0, Math.PI * 2);
+            const dir = Math.random() < 0.5 ? -1 : 1;
+            return { radius, angle, omega: omega * dir, z, r: size, baseA, tw, phase };
+        }
+
+        function renderStars(timeMs) {
+            if (!starsCtx || starsW <= 0 || starsH <= 0) return;
+            const t = (timeMs || 0) / 1000;
+            // Smooth mouse parallax (very subtle)
+            const lerp = 0.08;
+            mouse.x += (mouseTarget.x - mouse.x) * lerp;
+            mouse.y += (mouseTarget.y - mouse.y) * lerp;
+            const parallax = 22; // px at max
+            const offX = mouse.x * parallax;
+            const offY = mouse.y * parallax;
+
+            starsCtx.clearRect(0, 0, starsW, starsH);
+
+            // Keep it extremely subtle: no bright colors, no streaks
+            for (const s of stars) {
+                // Orbit update
+                s.angle += s.omega;
+                if (s.angle > Math.PI * 2) s.angle -= Math.PI * 2;
+                if (s.angle < 0) s.angle += Math.PI * 2;
+
+                const twinkle = 0.65 + 0.35 * Math.sin(t * s.tw + s.phase);
+                const a = Math.min(0.32, Math.max(0.04, s.baseA * twinkle));
+                starsCtx.fillStyle = `rgba(201, 209, 217, ${a})`;
+                const baseX = starsCx + s.radius * Math.cos(s.angle);
+                const baseY = starsCy + s.radius * Math.sin(s.angle);
+                const dx = baseX + offX * s.z;
+                const dy = baseY + offY * s.z;
+                starsCtx.beginPath();
+                starsCtx.arc(dx, dy, s.r, 0, Math.PI * 2);
+                starsCtx.fill();
+            }
+        }
+
+        function updateMouseTargetFromEvent(event) {
+            // Normalize to [-1, 1] with center at viewport center
+            const cx = window.innerWidth / 2;
+            const cy = window.innerHeight / 2;
+            const x = (event.clientX - cx) / (cx || 1);
+            const y = (event.clientY - cy) / (cy || 1);
+            mouseTarget = {
+                x: Math.max(-1, Math.min(1, x)),
+                y: Math.max(-1, Math.min(1, y))
+            };
+        }
+
+        window.addEventListener("mousemove", updateMouseTargetFromEvent, { passive: true });
+        window.addEventListener("mouseleave", () => { mouseTarget = { x: 0, y: 0 }; }, { passive: true });
+
         // AI Research Taxonomy (all-AI, curated; leaves = research areas)
         const treeData = {
             name: "Artificial Intelligence",
@@ -1209,6 +1323,9 @@
             return out;
         }
 
+        // Add global discovery links *before* building papersByArea so they appear in the modal.
+        addMorePaperLinksToAllMethods();
+
         // Leaf node name -> paper list
         const papersByArea = {
             "Gaussian Process Models": mergePapersByMethodNames(["Gaussian Processes"]),
@@ -1356,15 +1473,35 @@
             for (const key of Object.keys(papersByMethod)) {
                 const list = papersByMethod[key];
                 if (!Array.isArray(list)) continue;
-                const moreUrl = getScholarSearchUrl(key);
-                const already = list.some(p => String(p?.url || "").trim() === moreUrl);
-                if (already) continue;
-                list.push({
-                    title: `More papers: ${key} (Google Scholar)`,
-                    authors: "",
-                    year: "",
-                    url: moreUrl
-                });
+
+                const candidates = [
+                    {
+                        title: `More papers: ${key} (Google Scholar)`,
+                        authors: "",
+                        year: "",
+                        url: getScholarSearchUrl(key)
+                    },
+                    {
+                        title: `Survey/Review papers: ${key} (Google Scholar)`,
+                        authors: "",
+                        year: "",
+                        url: getScholarSearchUrl(`${key} survey review`)
+                    },
+                    {
+                        title: `Recent papers: ${key} (arXiv search)`,
+                        authors: "",
+                        year: "",
+                        url: getArxivSearchUrl(key)
+                    }
+                ];
+
+                for (const item of candidates) {
+                    const itemUrl = String(item?.url || "").trim();
+                    if (!itemUrl) continue;
+                    const exists = list.some(p => String(p?.url || "").trim() === itemUrl);
+                    if (exists) continue;
+                    list.push(item);
+                }
             }
         }
 
@@ -1454,8 +1591,6 @@
         window.addEventListener("keydown", (e) => {
             if (e.key === "Escape") closeModal();
         });
-
-        addMorePaperLinksToAllMethods();
 
         function clampDisk(p, maxR = 0.98) {
             const r = Math.hypot(p.x, p.y);
@@ -1717,17 +1852,20 @@
         }
 
         // Animation loop for smooth focusing
-        function animate() {
+        function animate(timeMs) {
             tickFocus();
             updateScene();
+            renderStars(timeMs);
             requestAnimationFrame(animate);
         }
 
+        resizeStars();
         initScene();
         updateScene();
         animate();
 
         window.addEventListener("resize", () => {
+            resizeStars();
             resizeScene();
             updateScene();
         });
