@@ -16,12 +16,14 @@
             --bg: #000000;
             --text: #c9d1d9;
             --muted: #8b949e;
+            --overlay: rgba(0, 0, 0, 0.6);
             --panel: #0f1622;
             --panel-2: #0d1117;
             --surface: #161b22;
             --border: #30363d;
             --border-soft: #21262d;
             --accent: #58a6ff;
+            --accent-soft: rgba(88, 166, 255, 0.35);
             --white: #ffffff;
 
             --node-fill: #161b22;
@@ -50,12 +52,14 @@
             --bg: #ffffff;
             --text: #0b1220;
             --muted: #4a5563;
+            --overlay: rgba(11, 18, 32, 0.35);
             --panel: #ffffff;
             --panel-2: #f6f8fa;
             --surface: #ffffff;
             --border: #d0d7de;
             --border-soft: #d8dee4;
             --accent: #0969da;
+            --accent-soft: rgba(9, 105, 218, 0.35);
             --white: #000000;
 
             --node-fill: #ffffff;
@@ -271,7 +275,7 @@
         .modal-backdrop {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.6);
+            background: var(--overlay);
             display: none;
             align-items: center;
             justify-content: center;
@@ -409,7 +413,7 @@
         }
 
         .paper-item {
-            background: rgba(13, 17, 23, 0.9);
+            background: var(--panel-2);
             border: 1px solid var(--border-soft);
             border-radius: 12px;
             padding: 12px 14px;
@@ -443,7 +447,7 @@
             width: fit-content;
             padding: 3px 8px;
             border-radius: 999px;
-            border: 1px solid rgba(88, 166, 255, 0.35);
+            border: 1px solid var(--accent-soft);
             color: var(--accent);
             font-size: 11px;
             font-weight: 800;
@@ -523,7 +527,7 @@
         }
 
         .paper-meta {
-            color: #8b949e;
+            color: var(--muted);
             font-size: 12px;
             line-height: 1.45;
         }
@@ -1649,7 +1653,7 @@
                     ${actions}
                     <div class="empty-state">
                         Bu node için makale listesi tanımlı değil.<br/>
-                        <span style="color:#c9d1d9; font-weight:700;">papersByArea</span> objesine bu isimle ekleyebilirsin.
+                        <span style="color: var(--text); font-weight:700;">papersByArea</span> objesine bu isimle ekleyebilirsin.
                     </div>
                 `;
             } else {
